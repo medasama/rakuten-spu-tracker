@@ -1,0 +1,2445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天SPU 月次台帳</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root{
+    --ink-900:#12151c;
+    --ink-800:#1b1f28;
+    --ink-700:#262b36;
+    --paper:#f4f2ea;
+    --paper-dim:#e7e3d6;
+    --line:#3a4051;
+    --teal:#4fb3ab;
+    --teal-dim:#2c5f5a;
+    --amber:#e0a659;
+    --rust:#c46a52;
+    --ink-on-paper:#1b1f28;
+    --muted:#8890a0;
+    --sim-accent:#c9985a;
+    --sim-accent-dim:#7a5a2d;
+    --camp-accent:#7f9cd6;
+    --camp-accent-dim:#3a4f7d;
+    --sport-accent:#8fbf7a;
+    --sport-accent-dim:#42603a;
+    --fz-accent:#c68fd6;
+    --fz-accent-dim:#6b3f78;
+    --wf-accent:#e0c56a;
+    --wf-accent-dim:#8a7226;
+    --d18-accent:#e08a8a;
+    --d18-accent-dim:#8a3f3f;
+    --pcd-accent:#8ab0e0;
+    --pcd-accent-dim:#3f6a8a;
+    --plan-accent:#a894e0;
+    --plan-accent-dim:#5a4a8a;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink-900);
+    color:var(--paper);
+    font-family:'Noto Sans JP','Space Grotesk',sans-serif;
+    min-height:100vh;
+    padding:28px 16px 60px;
+  }
+
+  .wrap{max-width:960px;margin:0 auto;}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px;
+  }
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--teal);
+    text-transform:uppercase;margin:0 0 6px;
+  }
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;margin:0;letter-spacing:-.01em;}
+  .history-link-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);text-decoration:none;
+    border:1px solid var(--teal-dim);border-radius:7px;padding:6px 12px;white-space:nowrap;transition:background .15s;
+  }
+  .history-link-btn:hover{background:rgba(79,179,171,.12);}
+  .month-controls{display:flex;align-items:center;gap:10px;}
+  .month-controls select,.month-controls input[type=month]{
+    background:var(--ink-800);border:1px solid var(--line);color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 10px;border-radius:6px;
+  }
+  .month-controls label{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+  .backup-bar{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+    margin-bottom:22px;
+  }
+  .backup-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+  .backup-buttons button{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:var(--ink-800);color:var(--paper);
+    border:1px solid var(--line);border-radius:7px;padding:8px 12px;cursor:pointer;transition:background .15s;
+  }
+  .backup-buttons button:hover{background:var(--ink-700);}
+  .backup-status{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);}
+  .backup-status.error{color:var(--rust);}
+
+  .hero{
+    display:flex;flex-direction:column;gap:20px;
+    background:linear-gradient(155deg,var(--ink-800),var(--ink-700));
+    border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin-bottom:22px;
+  }
+  .today-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .today-badges:empty{display:none;}
+  .today-badge{
+    display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono';font-size:11px;
+    background:rgba(79,179,171,.15);color:var(--teal);border:1px solid rgba(79,179,171,.35);
+    border-radius:14px;padding:5px 12px;
+  }
+  .today-badge.camp{background:rgba(127,156,214,.15);color:var(--camp-accent);border-color:rgba(127,156,214,.35);}
+  .hero-headline{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .headline-stat{
+    background:rgba(255,255,255,.04);border-radius:12px;padding:18px 20px;
+  }
+  .headline-stat.accent{background:rgba(79,179,171,.12);border:1px solid rgba(79,179,171,.3);}
+  .headline-stat .label{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);letter-spacing:.06em;margin-bottom:8px;}
+  .headline-stat .value{font-family:'Space Grotesk';font-weight:700;font-size:34px;line-height:1;}
+  .headline-stat.accent .value{color:var(--teal);}
+  .headline-stat .sub{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.6;}
+
+  .hero-secondary{display:grid;grid-template-columns:140px 1fr;gap:24px;align-items:center;padding-top:4px;border-top:1px solid rgba(255,255,255,.08);}
+  .gauge-wrap{position:relative;width:140px;height:140px;}
+  .gauge-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .gauge-num .val{font-family:'Space Grotesk';font-weight:700;font-size:26px;line-height:1;}
+  .gauge-num .unit{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--muted);margin-top:4px;letter-spacing:.06em;text-align:center;line-height:1.4;}
+
+  .hero-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+  .stat-block .label{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);letter-spacing:.06em;margin-bottom:5px;}
+  .stat-block .value{font-family:'Space Grotesk';font-size:20px;font-weight:600;}
+  .stat-block .sub{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
+
+  /* ---------- generic "paper" card ---------- */
+  .paper-card{background:var(--paper);color:var(--ink-on-paper);border-radius:14px;padding:22px 24px;margin-bottom:22px;}
+  .paper-card h2{font-family:'Space Grotesk';font-size:16px;font-weight:700;margin:0 0 4px;display:flex;align-items:center;justify-content:space-between;}
+  .csv-export-btn{
+    font-family:'IBM Plex Mono';font-size:11px;font-weight:400;background:none;color:var(--teal-dim);
+    border:1px solid var(--teal-dim);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;
+  }
+  .csv-export-btn:hover{background:rgba(44,95,90,.08);}
+  .paper-card h2 .count{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;font-weight:400;}
+  .paper-card .sub{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;margin:0 0 16px;}
+
+  /* ---------- simulator ---------- */
+  .sim-card{background:linear-gradient(155deg,#242019,#1c1914);border:1px solid var(--sim-accent-dim);border-radius:14px;padding:22px 24px;margin-bottom:22px;}
+  .sim-card h2{font-family:'Space Grotesk';font-size:16px;font-weight:700;margin:0 0 4px;color:var(--sim-accent);}
+  .sim-card .sim-sub{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);margin:0 0 16px;}
+  .sim-form{display:grid;grid-template-columns:165px 1.5fr 150px 1fr 110px;gap:12px;margin-bottom:16px;}
+  .sim-form input,.sim-form select{
+    font-family:'IBM Plex Mono';font-size:14.5px;border:1px solid #45392a;background:#faf6ee;
+    color:var(--ink-on-paper);border-radius:8px;padding:14px 12px;outline:none;width:100%;min-width:0;
+  }
+  .sim-form input[type=text]{font-family:'Noto Sans JP';}
+  .sim-form input:focus,.sim-form select:focus{border-color:var(--sim-accent);}
+  .sim-form button{
+    font-family:'Space Grotesk';font-weight:600;font-size:14px;background:var(--sim-accent);
+    color:#241c10;border:none;border-radius:8px;padding:0 18px;cursor:pointer;transition:background .15s;white-space:nowrap;
+  }
+  .sim-form button:hover{background:#dcae74;}
+
+  .sim-result{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;background:rgba(255,255,255,.04);border-radius:10px;padding:16px 18px;}
+  .sim-result .big-pt{font-family:'Space Grotesk';font-weight:700;font-size:34px;color:var(--sim-accent);line-height:1;}
+  .sim-result .big-pt .lbl{display:block;font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);font-weight:400;margin-bottom:4px;}
+  .sim-mini-stats{display:flex;gap:26px;flex-wrap:wrap;}
+  .sim-mini-stats div .v{font-family:'Space Grotesk';font-size:18px;font-weight:600;}
+  .sim-mini-stats div .l{font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);margin-top:2px;}
+
+  .sim-breakdown{margin-top:14px;display:none;}
+  .sim-breakdown.show{display:block;}
+  .sim-row{display:flex;justify-content:space-between;align-items:center;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12.5px;}
+  .sim-row:last-child{border-bottom:none;}
+  .sim-row .sname{color:var(--paper);}
+  .sim-row .sname .tag{font-family:'IBM Plex Mono';font-size:10px;color:var(--rust);margin-left:6px;}
+  .sim-row .sname .tag.camp{color:var(--camp-accent);}
+  .sim-row .sname .tag.sport{color:var(--sport-accent);}
+  .sim-row .sname .tag.fz{color:var(--fz-accent);}
+  .sim-row .spt{font-family:'IBM Plex Mono';color:var(--sim-accent);}
+  .sim-row .spt.zero{color:var(--muted);}
+  .sim-empty{font-family:'IBM Plex Mono';font-size:12px;color:var(--muted);text-align:center;padding:10px 0;}
+
+  /* ---------- purchase log ---------- */
+  .entry-form{display:grid;grid-template-columns:165px 1.5fr 150px 1fr 110px;gap:12px;margin-bottom:16px;}
+  .entry-form input{
+    font-family:'IBM Plex Mono';font-size:14.5px;border:1px solid var(--paper-dim);background:#fff;
+    border-radius:8px;padding:14px 12px;color:var(--ink-on-paper);outline:none;width:100%;min-width:0;
+  }
+  .entry-form input:focus{border-color:var(--teal-dim);}
+  .entry-form input[type=text]{font-family:'Noto Sans JP';}
+  .entry-form button{
+    font-family:'Space Grotesk';font-weight:600;font-size:14px;background:var(--teal-dim);color:#fff;
+    border:none;border-radius:8px;cursor:pointer;transition:background .15s;
+  }
+  .entry-form button:hover{background:#1f4441;}
+
+  table.data-table{width:100%;border-collapse:collapse;}
+  table.data-table thead th{
+    text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;letter-spacing:.05em;
+    padding:6px 8px;border-bottom:1px solid var(--paper-dim);
+  }
+  table.data-table tbody td{padding:9px 8px;font-size:13.5px;border-bottom:1px solid #efece0;vertical-align:middle;}
+  table.data-table tbody tr:last-child td{border-bottom:none;}
+  .col-date{font-family:'IBM Plex Mono';font-size:12px;color:#5b6270;white-space:nowrap;}
+  .col-amount{font-family:'IBM Plex Mono';text-align:right;white-space:nowrap;}
+  .col-shop{font-family:'IBM Plex Mono';font-size:12px;color:#5b6270;white-space:nowrap;}
+  .col-del{width:34px;text-align:center;}
+  .del-btn{background:none;border:none;color:#b46a5a;font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;}
+  .del-btn:hover{background:#f0e5e0;}
+  .empty-note{font-family:'IBM Plex Mono';font-size:12px;color:#8890a0;padding:14px 4px;}
+
+  .shop-history-wrap{margin:-4px 0 18px;}
+  .shop-history-label{font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;margin-bottom:7px;}
+  .shop-history-chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .shop-chip{
+    display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono';font-size:11.5px;
+    background:#efece0;color:#4a4438;border-radius:14px;padding:5px 6px 5px 12px;
+  }
+  .shop-chip button{
+    background:#e0d8c8;border:none;cursor:pointer;color:#a4392a;font-size:12px;line-height:1;
+    width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .shop-chip button:hover{background:#d9c2b8;}
+  .shop-chip-empty{font-family:'IBM Plex Mono';font-size:11px;color:#a8a196;}
+
+  .shop-field-wrap{position:relative;min-width:0;}
+  .shop-field-wrap input{width:100%;}
+  .shop-ac-list{
+    position:absolute;top:100%;left:0;right:0;z-index:200;margin-top:2px;
+    background:#fff;border:1px solid var(--paper-dim);border-radius:8px;
+    max-height:190px;overflow-y:auto;display:none;
+    box-shadow:0 10px 28px rgba(0,0,0,.25);
+  }
+  .shop-ac-list.show{display:block;}
+  .shop-ac-item{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:8px 10px;font-family:'IBM Plex Mono';font-size:12.5px;color:var(--ink-on-paper);
+  }
+  .shop-ac-item:hover{background:#efece0;}
+  .shop-ac-name{flex:1;cursor:pointer;}
+  .shop-ac-del{
+    background:none;border:none;cursor:pointer;color:#a4392a;font-size:13px;line-height:1;
+    padding:2px 6px;border-radius:4px;flex-shrink:0;
+  }
+  .shop-ac-del:hover{background:#f0e5e0;}
+
+  .other-row{display:flex;align-items:center;margin-top:14px;padding-top:14px;border-top:1px dashed var(--paper-dim);}
+  .other-row .total-echo{margin-left:auto;font-family:'Space Grotesk';font-weight:700;font-size:18px;}
+  .other-row .total-echo .lbl2{font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;font-weight:400;display:block;margin-bottom:2px;}
+
+  /* ---------- campaign cards (marathon / sports) ---------- */
+  .camp-form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .camp-form-row:last-of-type{margin-bottom:0;}
+  .camp-form-row select,.camp-form-row input{
+    font-family:'IBM Plex Mono';font-size:13px;border:1px solid var(--paper-dim);background:#fff;
+    border-radius:7px;padding:10px 10px;color:var(--ink-on-paper);outline:none;
+  }
+  .camp-form-row input[type=text]{font-family:'Noto Sans JP';flex:1;min-width:140px;}
+  .camp-form-row select{min-width:170px;}
+  #campCap{width:160px;}
+  .camp-form-row select:focus,.camp-form-row input:focus{border-color:var(--camp-accent-dim);}
+  .camp-form-row button{
+    font-family:'Space Grotesk';font-weight:600;font-size:13px;background:var(--camp-accent-dim);color:#fff;
+    border:none;border-radius:7px;padding:10px 18px;cursor:pointer;
+  }
+  .dt-group{display:flex;align-items:center;gap:8px;}
+  .dt-group label{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;min-width:28px;}
+  .dt-group input[type=date]{width:150px;}
+  .dt-group input[type=time]{width:100px;}
+  .dt-tilde{font-family:'IBM Plex Mono';font-size:13px;color:#5b6270;}
+  .sport-form{display:grid;grid-template-columns:155px 1fr 1fr 90px;gap:10px;align-items:center;margin-bottom:10px;}
+  .sport-form input,.sport-form select{
+    font-family:'IBM Plex Mono';font-size:13px;border:1px solid var(--paper-dim);background:#fff;
+    border-radius:7px;padding:10px 10px;color:var(--ink-on-paper);outline:none;width:100%;
+  }
+  .sport-form input:focus,.sport-form select:focus{border-color:var(--camp-accent-dim);}
+  .sport-form button{
+    font-family:'Space Grotesk';font-weight:600;font-size:13px;background:var(--sport-accent-dim);color:#fff;
+    border:none;border-radius:7px;cursor:pointer;
+  }
+
+  .camp-item, .sport-item{
+    display:grid;grid-template-columns:1fr 1.4fr 34px;gap:14px;align-items:center;
+    padding:14px 4px;border-bottom:1px solid #efece0;
+  }
+  .camp-item:last-child, .sport-item:last-child{border-bottom:none;}
+  .camp-name{font-weight:600;font-size:14px;}
+  .camp-period{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;margin-top:2px;}
+  .camp-stats{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;margin-top:2px;}
+  .camp-pt{font-family:'Space Grotesk';font-weight:700;font-size:17px;text-align:right;}
+  .camp-pt .cap{display:block;font-family:'IBM Plex Mono';font-size:10px;color:#5b6270;font-weight:400;}
+  .camp-bar-track{width:100%;height:6px;background:#e7e3d6;border-radius:3px;overflow:hidden;margin-top:6px;}
+  .camp-bar-fill{height:100%;border-radius:3px;background:var(--camp-accent-dim);}
+  .camp-bar-fill.sport{background:var(--sport-accent-dim);}
+
+  .gift-card-item{padding:16px 4px;border-bottom:1px solid #efece0;}
+  .gift-card-item:last-child{border-bottom:none;}
+  .gift-line{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:8px 0;font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-on-paper);
+  }
+  .gift-line.muted{color:#a8a196;}
+  .gift-line.full{color:#8a7226;font-weight:600;padding-top:10px;}
+  .gift-label{flex:1;}
+  .gift-amount{font-family:'Space Grotesk';font-weight:700;font-size:17px;white-space:nowrap;}
+
+  .gift-sim-box{
+    margin-top:10px;padding:12px 14px;background:rgba(90,74,138,.08);border:1px dashed var(--plan-accent-dim);
+    border-radius:8px;
+  }
+  .gift-sim-row{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:4px 0;font-family:'IBM Plex Mono';font-size:11.5px;color:#5b6270;
+  }
+  .gift-sim-row .v{font-family:'Space Grotesk';font-weight:700;font-size:14px;color:var(--plan-accent-dim);}
+  .gift-sim-row .v.warn{color:#a4392a;}
+  .camp-bar-fill.fivezero{background:var(--fz-accent-dim);}
+  .camp-bar-fill.wonderful{background:var(--wf-accent-dim);}
+  .camp-bar-fill.eighteen{background:var(--d18-accent-dim);}
+  .camp-bar-fill.premium{background:var(--pcd-accent-dim);}
+  .camp-bar-fill.full{background:var(--rust);}
+  .fz-dates{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;margin-top:10px;line-height:1.8;}
+  .fz-dates span{display:inline-block;background:#efe8f2;color:#5b3f66;border-radius:5px;padding:2px 8px;margin:0 6px 6px 0;}
+
+  .fixed-event-block{padding:16px 0;border-bottom:1px dashed var(--paper-dim);}
+  .fixed-event-block:first-child{padding-top:2px;}
+  .fixed-event-title{font-weight:600;font-size:14px;margin-bottom:8px;}
+  .fixed-event-note{display:block;font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;font-weight:400;margin-top:2px;}
+  .fixed-event-pt{margin-top:10px;font-family:'Space Grotesk';font-weight:700;font-size:19px;}
+  .fixed-event-pt span{font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;font-weight:400;}
+  .repeat-check{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-on-paper);white-space:nowrap;}
+  .repeat-check input{width:15px;height:15px;accent-color:var(--wf-accent-dim);}
+  .team-check{
+    display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-on-paper);
+    white-space:nowrap;border:1px solid var(--paper-dim);border-radius:7px;padding:10px 10px;background:#fff;
+  }
+  .team-check input{width:15px;height:15px;accent-color:var(--sport-accent-dim);}
+  .form-error{
+    font-family:'IBM Plex Mono';font-size:11.5px;color:#a4392a;min-height:16px;margin:-2px 0 12px;
+  }
+  .form-error.warning{color:#8a6a26;}
+  .perk-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 16px;}
+  .perk-label{font-family:'IBM Plex Mono';font-size:11.5px;color:#5b6270;}
+  .perk-check{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono';font-size:11.5px;color:#5b6270;white-space:nowrap;
+    border:1px solid var(--paper-dim);border-radius:7px;padding:7px 10px;background:#fff;}
+  .perk-check input{width:15px;height:15px;accent-color:var(--camp-accent-dim);}
+  .perk-group{
+    display:flex;align-items:center;gap:14px;font-family:'IBM Plex Mono';font-size:11.5px;color:#5b6270;
+    border:1px solid var(--paper-dim);border-radius:7px;padding:7px 12px;background:#fff;white-space:nowrap;
+  }
+  .perk-group-label{font-weight:600;color:var(--ink-on-paper);}
+  .perk-group label{display:flex;align-items:center;gap:5px;}
+  .perk-group input{width:15px;height:15px;accent-color:var(--sport-accent-dim);}
+  .sport-tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .sport-tag{
+    font-family:'IBM Plex Mono';font-size:10px;padding:2px 7px;border-radius:5px;background:#e3ede0;color:#42603a;
+  }
+  .s39-tag{font-family:'IBM Plex Mono';font-size:10px;padding:2px 7px;border-radius:5px;background:#e6eaf5;color:#3a4f7d;margin-left:4px;}
+  .s39-tag.warn{background:#f5e6e2;color:#a4392a;}
+  .entry-row-clickable{cursor:pointer;}
+  .entry-row-clickable:hover{background:#f2efe4;}
+  .entry-row-editing{background:#eef2df !important;}
+  .edit-cancel-btn{
+    font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;background:none;border:none;cursor:pointer;
+    text-decoration:underline;margin:-8px 0 12px;padding:0;
+  }
+  .edit-banner{
+    font-family:'IBM Plex Mono';font-size:11.5px;color:#6b5a26;background:#f5edd6;border-radius:7px;
+    padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;
+  }
+
+  /* ---------- ledger ---------- */
+  .ledger{background:var(--ink-800);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:24px;}
+  .ledger-head{
+    display:grid;grid-template-columns:26px 1.6fr .6fr 1fr 1.3fr;gap:12px;padding:12px 20px;
+    font-family:'IBM Plex Mono';font-size:10.5px;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);
+  }
+  .row{
+    display:grid;grid-template-columns:26px 1.6fr .6fr 1fr 1.3fr;gap:12px;align-items:center;
+    padding:13px 20px;border-bottom:1px solid rgba(255,255,255,.05);transition:opacity .2s;
+  }
+  .row:last-child{border-bottom:none;}
+  .row.inactive{opacity:.35;}
+  .row input[type=checkbox]{width:16px;height:16px;accent-color:var(--teal);cursor:pointer;}
+  .svc-name{font-size:14px;font-weight:500;}
+  .svc-note{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);margin-top:2px;}
+  .mult{font-family:'IBM Plex Mono';font-size:13px;color:var(--amber);}
+  .pt-block{font-family:'Space Grotesk';font-size:16px;font-weight:600;}
+  .pt-block .cap{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);font-weight:400;}
+  .bar-track{width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .25s;}
+  .bar-fill.warn{background:var(--amber);}
+  .bar-fill.full{background:var(--rust);}
+  .bar-caption{font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);margin-top:4px;}
+
+  .pool-caption{
+    font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);padding:10px 20px;
+    border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);
+  }
+
+  .summary-strip{
+    display:flex;justify-content:space-between;align-items:center;background:var(--paper);color:var(--ink-on-paper);
+    border-radius:14px;padding:18px 24px;flex-wrap:wrap;gap:12px;
+  }
+  .summary-strip .big{font-family:'Space Grotesk';font-size:24px;font-weight:700;}
+  .summary-strip .lbl{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;letter-spacing:.05em;}
+  .summary-strip .breakdown{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;margin-top:4px;}
+
+  .save-flag{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--teal);opacity:0;transition:opacity .3s;text-align:right;margin-top:8px;}
+  .save-flag.show{opacity:1;}
+
+  footer{margin-top:30px;font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);line-height:1.7;}
+
+  @media (max-width:640px){
+    .hero-headline{grid-template-columns:1fr;}
+    .hero-secondary{grid-template-columns:1fr;}
+    .gauge-wrap{margin:0 auto;}
+    .sim-form{grid-template-columns:1fr 1fr;}
+    .sim-form button{grid-column:span 2;}
+    .sim-result{grid-template-columns:1fr;text-align:center;}
+    .entry-form{grid-template-columns:1fr 1fr;}
+    .entry-form button{grid-column:span 2;padding:10px;}
+    .camp-form-row{flex-direction:column;align-items:stretch;}
+    .camp-form-row select,.camp-form-row input,.camp-form-row button{width:100%;}
+    .dt-group{flex-direction:column;align-items:stretch;}
+    .dt-group input{width:100% !important;}
+    .sport-form{grid-template-columns:1fr 1fr;}
+    .sport-form button{grid-column:span 2;}
+    .camp-item,.sport-item{grid-template-columns:1fr 34px;}
+    .camp-pt{grid-column:1;text-align:left;margin-top:6px;}
+    .ledger-head{display:none;}
+    .row{grid-template-columns:20px 1fr;grid-template-areas:"chk name" ". mult" ". pt" ". bar";row-gap:6px;padding:16px 18px;}
+    .row input[type=checkbox]{grid-area:chk;}
+    .row .svc{grid-area:name;}
+    .row .mult{grid-area:mult;}
+    .row .pt-block{grid-area:pt;}
+    .row .bar-wrap{grid-area:bar;}
+  }
+
+  /* ---------- 買い物予定リスト（FAB + モーダル） ---------- */
+  .plan-fab{
+    position:fixed;right:0;top:50%;transform:translateY(-50%);
+    background:var(--plan-accent-dim);color:#fff;border:none;
+    padding:18px 10px;border-radius:12px 0 0 12px;cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;line-height:1.5;
+    letter-spacing:.03em;box-shadow:-3px 0 14px rgba(0,0,0,.35);z-index:500;
+    writing-mode:vertical-rl;text-orientation:mixed;
+  }
+  .plan-fab:hover{background:#6e5aa8;}
+
+  .plan-modal-overlay{
+    position:fixed;inset:0;background:rgba(10,8,18,.65);z-index:1000;
+    display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;
+  }
+  .plan-modal-overlay.show{display:flex;}
+  .plan-modal{
+    background:var(--paper);color:var(--ink-on-paper);border-radius:16px;max-width:920px;width:100%;
+    padding:28px;border:2px solid var(--plan-accent-dim);box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .plan-modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .plan-modal-header h2{font-family:'Space Grotesk';font-size:20px;font-weight:700;margin:0;color:var(--plan-accent-dim);}
+  .plan-close-btn{background:none;border:none;font-size:26px;cursor:pointer;color:#5b6270;line-height:1;padding:4px 8px;}
+  .plan-close-btn:hover{color:var(--ink-on-paper);}
+  .plan-modal-sub{font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;margin:0 0 18px;}
+
+  .plan-modal .entry-form{grid-template-columns:155px 1.4fr 140px 1fr 100px;}
+  .plan-modal .entry-form button{background:var(--plan-accent-dim);}
+  .plan-modal .entry-form button:hover{background:#6e5aa8;}
+  .plan-modal .entry-form input:focus{border-color:var(--plan-accent-dim);}
+  .plan-modal .perk-group input{accent-color:var(--plan-accent-dim);}
+  .plan-modal .perk-check input{accent-color:var(--plan-accent-dim);}
+
+  .plan-modal table.data-table{margin-top:10px;}
+  .plan-pt{font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:var(--plan-accent-dim);white-space:nowrap;}
+  .plan-tags{font-family:'IBM Plex Mono';font-size:10px;color:var(--plan-accent-dim);margin-left:5px;}
+  .plan-commit-btn{
+    font-family:'IBM Plex Mono';font-size:10.5px;background:var(--plan-accent-dim);color:#fff;border:none;
+    border-radius:6px;padding:6px 10px;cursor:pointer;white-space:nowrap;
+  }
+  .plan-commit-btn:hover{background:#6e5aa8;}
+
+  .plan-summary{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+    background:rgba(90,74,138,.1);border:1px solid var(--plan-accent-dim);border-radius:10px;
+    padding:14px 18px;margin:18px 0;
+  }
+  .plan-summary .lbl{font-family:'IBM Plex Mono';font-size:11.5px;color:#5b6270;}
+  .plan-summary .big{font-family:'Space Grotesk';font-weight:700;font-size:22px;color:var(--plan-accent-dim);}
+  .plan-summary .commit-all-btn{
+    font-family:'Space Grotesk';font-weight:600;font-size:12.5px;background:var(--plan-accent-dim);color:#fff;
+    border:none;border-radius:7px;padding:9px 16px;cursor:pointer;
+  }
+  .plan-summary .commit-all-btn:hover{background:#6e5aa8;}
+
+  .plan-gift-section{margin-top:6px;padding-top:16px;border-top:1px dashed var(--paper-dim);}
+  .plan-gift-section h3{font-family:'Space Grotesk';font-size:14px;font-weight:700;margin:0 0 4px;color:var(--plan-accent-dim);}
+  .plan-gift-section .sub{font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;margin:0 0 12px;}
+
+  @media (max-width:640px){
+    .plan-fab{writing-mode:horizontal-tb;top:auto;bottom:0;right:0;left:0;transform:none;
+      border-radius:14px 14px 0 0;text-align:center;padding:12px;}
+    .plan-modal{padding:18px;}
+    .plan-modal .entry-form{grid-template-columns:1fr 1fr;}
+    .plan-modal .entry-form button{grid-column:span 2;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="brand-eyebrow">RAKUTEN POINT LEDGER</p>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1>楽天ポイント 月次台帳</h1>
+        <a href="https://order.my.rakuten.co.jp/purchase-history/order-list"
+           target="_blank" rel="noopener noreferrer" class="history-link-btn">購入履歴へ ↗</a>
+      </div>
+    </div>
+    <div class="month-controls">
+      <div><label>対象月</label><input type="month" id="monthPicker"></div>
+      <div><label>過去の記録</label><select id="historySelect"><option value="">— 選択 —</option></select></div>
+    </div>
+  </header>
+
+  <div class="backup-bar">
+    <div class="backup-buttons">
+      <button id="exportBtn" type="button">⭳ バックアップをJSON保存</button>
+      <button id="importBtn" type="button">⭱ JSONから読み込む</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+    <div id="backupStatus" class="backup-status"></div>
+  </div>
+
+  <div class="hero">
+    <div id="todayBadges" class="today-badges"></div>
+    <div class="hero-headline">
+      <div class="headline-stat">
+        <div class="label">今月使った金額（税込・記録ベース）</div>
+        <div class="value" id="statSpent">¥0</div>
+      </div>
+      <div class="headline-stat accent">
+        <div class="label">獲得予定ポイント合計</div>
+        <div class="value" id="statTotalPt">0 pt</div>
+        <div class="sub" id="statTotalBreakdown">SPU 0 / マラソン等 0 / 勝ったら倍 0</div>
+      </div>
+    </div>
+    <div class="hero-secondary">
+      <div class="gauge-wrap">
+        <svg width="140" height="140" viewBox="0 0 180 180">
+          <circle cx="90" cy="90" r="76" fill="none" stroke="#2a303c" stroke-width="14"/>
+          <circle id="gaugeArc" cx="90" cy="90" r="76" fill="none" stroke="#4fb3ab" stroke-width="14"
+                  stroke-linecap="round" stroke-dasharray="477.5" stroke-dashoffset="477.5" transform="rotate(-90 90 90)"/>
+        </svg>
+        <div class="gauge-num">
+          <div class="val" id="gaugeVal">0.0倍</div>
+          <div class="unit">SPU実効倍率<br>/ 上限18.5倍</div>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-block">
+          <div class="label">実質還元率</div>
+          <div class="value" id="statRate">0.0%</div>
+          <div class="sub">対 税込購入額（記録ベース）</div>
+        </div>
+        <div class="stat-block">
+          <div class="label">上限到達サービス（SPU）</div>
+          <div class="value" id="statCapped">0 / 0</div>
+          <div class="sub">有効サービス中</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="paper-card">
+    <h2>買い物記録 <span class="count" id="entryCount">0件</span><button id="csvExportBtn" class="csv-export-btn" type="button">CSV出力</button></h2>
+
+    <div class="edit-banner" id="editBanner" style="display:none;">
+      <span>この記録を編集しています。内容を直して「更新」を押してください。</span>
+      <button class="edit-cancel-btn" id="cancelEditBtn" type="button" style="margin:0;">キャンセル</button>
+    </div>
+
+    <div class="entry-form">
+      <input type="date" id="entryDate">
+      <input type="text" id="entryItem" placeholder="商品名">
+      <input type="text" id="entryAmount" inputmode="numeric" placeholder="価格（税込）">
+      <input type="text" id="entryShop" list="shopHistoryOptions" placeholder="店舗名（任意・マラソン集計用）">
+      <button id="addEntryBtn" type="button">追加</button>
+    </div>
+    <label class="repeat-check" id="entryRepeatWrap" style="display:none;margin:-8px 0 10px;">
+      <input type="checkbox" id="entryRepeat"> リピート購入（過去に買ったことがある商品）— ワンダフルデーのリピート特典対象
+    </label>
+    <div class="perk-row">
+      <div class="perk-group">
+        <span class="perk-group-label">勝ったら倍</span>
+        <label><input type="checkbox" id="entryEagles"> 勝1</label>
+        <label><input type="checkbox" id="entryVissel"> 勝2</label>
+      </div>
+      <label class="perk-check"><input type="checkbox" id="entryS39"> 39ショップ対象（税込3,980円以上の注文）</label>
+      <label class="perk-check"><input type="checkbox" id="entryDuplicate"> 重複（今回すでに使った店舗としてカウント・買い回り店舗数は増やさない）</label>
+    </div>
+
+    <datalist id="shopHistoryOptions"></datalist>
+    <div class="shop-history-wrap">
+      <div class="shop-history-label">よく使う店舗名（入力すると自動で記録／クリックで削除）</div>
+      <div class="shop-history-chips" id="shopHistoryChips"></div>
+    </div>
+
+    <table class="data-table">
+      <thead><tr><th class="col-date">日付</th><th>購入内容</th><th class="col-shop">店舗</th><th class="col-amount">金額（税込）</th><th class="col-del"></th></tr></thead>
+      <tbody id="entryRows"></tbody>
+    </table>
+    <div class="empty-note" id="emptyNote">まだ記録がありません。上のフォームから追加してください。</div>
+
+    <div class="other-row">
+      <div class="total-echo"><span class="lbl2">月間合計（税込）</span><span id="grandTotal">¥0</span></div>
+    </div>
+  </div>
+
+  <div class="paper-card">
+    <h2>お買い物マラソン／スーパーセール</h2>
+    <p class="sub">開催期間と当該回の上限ポイントを登録すると、期間内の買い物記録から店舗数・獲得ポイントを自動計算します</p>
+
+    <div class="camp-form-row">
+      <select id="campNameSelect">
+        <option value="お買い物マラソン">お買い物マラソン</option>
+        <option value="楽天スーパーセール">楽天スーパーセール</option>
+        <option value="__other__">その他（記入）</option>
+      </select>
+      <input type="text" id="campNameOther" placeholder="名称を入力" style="display:none;">
+      <input type="text" id="campCap" inputmode="numeric" placeholder="上限pt（例:7000）">
+      <button id="addCampBtn" type="button">追加</button>
+    </div>
+    <div class="camp-form-row camp-form-datetime">
+      <div class="dt-group">
+        <label>開始</label>
+        <input type="date" id="campStartDate">
+        <input type="time" id="campStartTime" value="20:00">
+      </div>
+      <span class="dt-tilde">〜</span>
+      <div class="dt-group">
+        <label>終了</label>
+        <input type="date" id="campEndDate">
+        <input type="time" id="campEndTime" value="01:59">
+      </div>
+    </div>
+    <div class="form-error" id="campError"></div>
+
+    <div id="campList"></div>
+    <div class="empty-note" id="campEmptyNote">登録されたイベントはありません。</div>
+  </div>
+
+  <div class="paper-card">
+    <h2>勝ったら倍</h2>
+    <p class="sub">買い物記録の入力時に「勝ったら倍」を選択すると、日付ごとに自動集計します（1日上限1,000pt）</p>
+    <div id="sportInfoList"></div>
+    <div class="empty-note" id="sportEmptyNote">「勝ったら倍」対象として登録された記録はありません。</div>
+  </div>
+
+  <div class="paper-card">
+    <h2>39ショップ（送料無料ライン39キャンペーン）</h2>
+    <p class="sub">開催回ごとに期間・上限ポイントを登録すると、買い物記録の「39ショップ対象」チェックのうち、その期間内・税込3,980円以上の注文だけを回ごとに自動集計します</p>
+
+    <div class="camp-form-row">
+      <input type="text" id="s39Cap" inputmode="numeric" placeholder="上限pt（例:3000）">
+      <button id="addS39Btn" type="button">追加</button>
+    </div>
+    <div class="camp-form-row camp-form-datetime">
+      <div class="dt-group">
+        <label>開始</label>
+        <input type="date" id="s39StartDate">
+        <input type="time" id="s39StartTime" value="20:00">
+      </div>
+      <span class="dt-tilde">〜</span>
+      <div class="dt-group">
+        <label>終了</label>
+        <input type="date" id="s39EndDate">
+        <input type="time" id="s39EndTime" value="01:59">
+      </div>
+    </div>
+    <div class="form-error" id="s39Error"></div>
+
+    <div id="s39List"></div>
+    <div class="empty-note" id="s39EmptyNote">登録されたイベントはありません。</div>
+  </div>
+
+  <div class="paper-card">
+    <h2>毎月の固定日イベント</h2>
+    <p class="sub">日付だけで自動判定できる、毎月固定開催のイベントをまとめています。買い物記録の日付から自動計算します</p>
+
+    <div class="fixed-event-block">
+      <div class="fixed-event-title">5と0のつく日<span class="fixed-event-note">毎月5・10・15・20・25・30日／要エントリー・楽天カード決済／+1倍</span></div>
+      <div class="camp-stats" id="fzStats">対象日の買い物：¥0</div>
+      <div class="camp-bar-track"><div class="camp-bar-fill fivezero" id="fzBar" style="width:0%"></div></div>
+      <div class="fz-dates" id="fzDates"></div>
+      <div class="fixed-event-pt" id="fzPt">0 pt <span>/ 1,000pt</span></div>
+    </div>
+
+    <div class="fixed-event-block">
+      <div class="fixed-event-title">ワンダフルデー（全ショップ3倍分）<span class="fixed-event-note">毎月1日／要エントリー／当日合計税込3,000円以上／+2倍</span></div>
+      <div class="camp-stats" id="wfStats">対象日の買い物：¥0</div>
+      <div class="camp-bar-track"><div class="camp-bar-fill wonderful" id="wfBar" style="width:0%"></div></div>
+      <div class="fixed-event-pt" id="wfPt">0 pt <span>/ 1,000pt</span></div>
+    </div>
+
+    <div class="fixed-event-block">
+      <div class="fixed-event-title">ワンダフルデー（リピート購入分）<span class="fixed-event-note">毎月1日／過去に買った商品の再購入のみ対象／+1倍</span></div>
+      <div class="camp-stats" id="wfrStats">リピート購入としてチェックした分：¥0</div>
+      <div class="camp-bar-track"><div class="camp-bar-fill wonderful" id="wfrBar" style="width:0%"></div></div>
+      <div class="fixed-event-pt" id="wfrPt">0 pt <span>/ 1,000pt</span></div>
+    </div>
+
+    <div class="fixed-event-block" style="border-bottom:none;">
+      <div class="fixed-event-title">
+        18日ご愛顧感謝デー
+        <span class="fixed-event-note">毎月18日／要エントリー／会員ランク別倍率</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:6px 0 10px;">
+        <label style="font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;">会員ランク</label>
+        <select id="rankSelect" style="font-family:'IBM Plex Mono';font-size:12.5px;border:1px solid var(--paper-dim);border-radius:6px;padding:6px 8px;background:#fff;color:var(--ink-on-paper);">
+          <option value="none">レギュラー／シルバー（対象外）</option>
+          <option value="gold">ゴールド（+1倍）</option>
+          <option value="platinum">プラチナ（+2倍）</option>
+          <option value="diamond">ダイヤモンド（+3倍）</option>
+        </select>
+      </div>
+      <div class="camp-stats" id="d18Stats">対象日の買い物：¥0</div>
+      <div class="camp-bar-track"><div class="camp-bar-fill eighteen" id="d18Bar" style="width:0%"></div></div>
+      <div class="fixed-event-pt" id="d18Pt">0 pt <span>/ 1,000pt</span></div>
+    </div>
+
+    <div class="fixed-event-block" style="border-bottom:none;">
+      <div class="fixed-event-title">プレミアムカードデー（火・木）<span class="fixed-event-note">毎週火曜日・木曜日／楽天プレミアムカード利用分／エントリー不要／+1倍・月間上限10,000pt</span></div>
+      <div class="camp-stats" id="pcdStats">対象日の買い物：¥0</div>
+      <div class="camp-bar-track"><div class="camp-bar-fill premium" id="pcdBar" style="width:0%"></div></div>
+      <div class="fixed-event-pt" id="pcdPt">0 pt <span>/ 10,000pt</span></div>
+    </div>
+  </div>
+
+  <div class="ledger">
+    <div class="pool-caption">SPU（サービス継続利用による倍率）— 月間プール</div>
+    <div class="ledger-head"><div></div><div>サービス</div><div>倍率</div><div>獲得pt</div><div>上限までの進捗</div></div>
+    <div id="rows"></div>
+  </div>
+
+  <div class="sim-card">
+    <h2>買おうかな？シミュレーター</h2>
+    <p class="sim-sub">日付・店舗名を入れると、その日が「お買い物マラソン期間」や「勝ったら倍の日」なら自動で加味して計算します</p>
+
+    <div class="sim-form">
+      <input type="date" id="simDate">
+      <input type="text" id="simItem" placeholder="商品名（任意）">
+      <input type="text" id="simAmount" inputmode="numeric" placeholder="価格（税込）">
+      <input type="text" id="simShop" list="shopHistoryOptions" placeholder="店舗名（任意・マラソン集計用）">
+      <button id="simAddBtn" type="button">記録に追加</button>
+    </div>
+    <label class="repeat-check" id="simRepeatWrap" style="display:none;margin:-8px 0 10px;color:var(--paper);">
+      <input type="checkbox" id="simRepeat"> リピート購入（過去に買ったことがある商品）
+    </label>
+    <div class="perk-row">
+      <div class="perk-group">
+        <span class="perk-group-label">勝ったら倍</span>
+        <label><input type="checkbox" id="simEagles"> 勝1</label>
+        <label><input type="checkbox" id="simVissel"> 勝2</label>
+      </div>
+      <label class="perk-check"><input type="checkbox" id="simS39"> 39ショップ対象（税込3,980円以上の注文）</label>
+      <label class="perk-check"><input type="checkbox" id="simDuplicate"> 重複（今回すでに使った店舗としてカウント）</label>
+    </div>
+
+    <div class="sim-result">
+      <div class="big-pt">
+        <span class="lbl">この買い物で追加される見込みポイント</span>
+        <span id="simPt">0 pt</span>
+      </div>
+      <div class="sim-mini-stats">
+        <div><div class="v" id="simRate">0.0%</div><div class="l">この購入だけの実質還元率</div></div>
+      </div>
+    </div>
+
+    <div class="sim-breakdown" id="simBreakdown"><div id="simRows"></div></div>
+  </div>
+
+  <div class="paper-card">
+    <h2>ギフトカードでマラソン上限まで買うといくら？</h2>
+    <p class="sub">買い回りは店舗数×金額で決まるので、「新規店舗として買う」場合と「重複扱い（既に使った店舗として買う）」場合とで、上限までの必要額が変わります。どちらのつもりで買うか選んでください</p>
+
+    <div class="camp-form-row">
+      <label style="font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;white-space:nowrap;">購入方法</label>
+      <select id="giftMode">
+        <option value="new">新規店舗として購入（店舗数+1）</option>
+        <option value="existing">重複として購入（今使った店舗のどれかとして扱う・店舗数は増やさない）</option>
+      </select>
+      <label style="font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;white-space:nowrap;">試算する金額（税込）</label>
+      <input type="text" id="giftAmount" inputmode="numeric" placeholder="例：30000" style="max-width:160px;">
+    </div>
+
+    <div id="giftCardList"></div>
+  </div>
+
+  <div class="summary-strip">
+    <div>
+      <div class="lbl">合計獲得予定ポイント（期間限定pt・全プール合算）</div>
+      <div class="big" id="footTotal">0 pt</div>
+      <div class="breakdown" id="footBreakdown">SPU 0pt ／ マラソン等 0pt ／ 勝ったら倍 0pt</div>
+    </div>
+    <div class="save-flag" id="saveFlag">✓ 保存しました</div>
+  </div>
+
+  <footer>
+    ※ お支払いは楽天カード決済限定という前提で計算しています。SPU・お買い物マラソン／スーパーセール・39ショップ・勝ったら倍・5と0のつく日・ワンダフルデー・18日ご愛顧感謝デー・プレミアムカードデーは、それぞれ独立したポイントプール（別々の上限）として計算しています。<br>
+    ※ プレミアムカードデーは楽天プレミアムカード（楽天市場コース）以上の会員限定で、エントリー不要・毎週火曜日と木曜日が対象です。買い物記録の日付の曜日から自動判定しています。<br>
+    ※ 39ショップ（送料無料ライン39キャンペーン）は「1注文あたり税込3,980円以上」が条件です。買い物記録の「39ショップ対象」にチェックした行のうち、登録した開催期間内・かつ金額が3,980円未満のものは自動的に対象外扱いになります。開催回ごとに期間・上限ポイントを登録することで、回をまたいでも合算されずに正しく計算されます。<br>
+    ※ 勝ったら倍は、買い物記録の「勝ったら倍」欄で選んだ日付・チーム数から自動集計しています。同じ日に複数の記録がある場合、その日最後に選んだチーム数（多い方）を採用します。<br>
+    ※ 5と0のつく日は要エントリーの上、このツールでは買い物記録の日付が対象日（5,10,15,20,25,30日）かどうかで自動判定しています。<br>
+    ※ ワンダフルデー・18日ご愛顧感謝デーも同様に、要エントリーであることを前提に日付のみで自動判定しています。18日分は登録した会員ランクをもとに計算します（ランクが変わったら選択し直してください）。<br>
+    ※ 各ポイントは「税抜金額の1% × 倍率」（小数点以下切り捨て）で概算しています。実際の付与ポイントは楽天側の集計と若干異なる場合があります。<br>
+    ※ マラソン等の店舗数集計は、買い物記録の「店舗名」欄（未入力の場合は「購入内容」）をもとに、対象期間内の重複しない件数で計算しています。<br>
+    ※ 入力データはこのブラウザ内にのみ保存され、外部には送信されません。
+  </footer>
+
+</div>
+
+<button id="planFabBtn" class="plan-fab" type="button">買い物予定リスト</button>
+
+<div id="planModalOverlay" class="plan-modal-overlay">
+  <div class="plan-modal">
+    <div class="plan-modal-header">
+      <h2>買い物予定リスト</h2>
+      <button id="planCloseBtn" class="plan-close-btn" type="button">×</button>
+    </div>
+    <p class="plan-modal-sub">ここで組んだ予定は、今の記録に足したときの見込みポイントを先に確認できます。実行したら「記録へ」で買い物記録に移せます</p>
+
+    <div class="edit-banner" id="planEditBanner" style="display:none;">
+      <span>この予定を編集しています。内容を直して「更新」を押してください。</span>
+      <button class="edit-cancel-btn" id="cancelPlanEditBtn" type="button" style="margin:0;">キャンセル</button>
+    </div>
+
+    <div class="entry-form">
+      <input type="date" id="planDate">
+      <input type="text" id="planItem" placeholder="商品名">
+      <input type="text" id="planAmount" inputmode="numeric" placeholder="価格（税込）">
+      <input type="text" id="planShop" list="shopHistoryOptions" placeholder="店舗名（任意・マラソン集計用）">
+      <button id="addPlanBtn" type="button">追加</button>
+    </div>
+    <label class="repeat-check" id="planRepeatWrap" style="display:none;margin:-8px 0 10px;">
+      <input type="checkbox" id="planRepeat"> リピート購入（過去に買ったことがある商品）
+    </label>
+    <div class="perk-row">
+      <div class="perk-group">
+        <span class="perk-group-label">勝ったら倍</span>
+        <label><input type="checkbox" id="planEagles"> 勝1</label>
+        <label><input type="checkbox" id="planVissel"> 勝2</label>
+      </div>
+      <label class="perk-check"><input type="checkbox" id="planS39"> 39ショップ対象（税込3,980円以上の注文）</label>
+      <label class="perk-check"><input type="checkbox" id="planDuplicate"> 重複（今回すでに使った店舗としてカウント）</label>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr><th class="col-date">日付</th><th>購入内容</th><th class="col-shop">店舗</th><th class="col-amount">金額（税込）</th><th>獲得予定pt</th><th></th><th></th></tr>
+      </thead>
+      <tbody id="planRows"></tbody>
+    </table>
+    <div class="empty-note" id="planEmptyNote">まだ予定がありません。上のフォームから追加してください。</div>
+
+    <div class="plan-summary">
+      <div>
+        <div class="lbl">この計画をすべて実行した場合の合計獲得予定ポイント</div>
+        <div class="big" id="planTotalPt">0 pt</div>
+      </div>
+      <div>
+        <div class="lbl">実行後の今月の合計金額（税込）</div>
+        <div class="big" id="planTotalAmount">¥0</div>
+      </div>
+      <button id="commitAllPlanBtn" class="commit-all-btn" type="button">全て記録に追加</button>
+    </div>
+
+    <div class="plan-gift-section" style="border-top:none;padding-top:0;">
+      <h3>この計画を実行した場合のお買い物マラソン／スーパーセール</h3>
+      <p class="sub">現在の記録に、この計画をすべて加えたと仮定した場合の店舗数・獲得予定ポイントです</p>
+      <div id="planCampaignList"></div>
+    </div>
+
+    <div class="plan-gift-section">
+      <h3>この計画を実行した後にギフトカードを買うなら</h3>
+      <p class="sub">上の予定をすべて買った後を想定して、マラソン等の上限まであといくら買えるかを計算します</p>
+      <div class="camp-form-row">
+        <label style="font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;white-space:nowrap;">購入方法</label>
+        <select id="planGiftMode">
+          <option value="new">新規店舗として購入（店舗数+1）</option>
+          <option value="existing">重複として購入（店舗数は増やさない）</option>
+        </select>
+        <label style="font-family:'IBM Plex Mono';font-size:11px;color:#5b6270;white-space:nowrap;">試算する金額（税込）</label>
+        <input type="text" id="planGiftAmount" inputmode="numeric" placeholder="例：30000" style="max-width:160px;">
+      </div>
+      <div id="planGiftList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVICES = [
+  {id:'kaiin',    name:'楽天会員',              note:'登録のみ・上限なし',           mult:1,   cap:null, defaultActive:true},
+  {id:'card',     name:'楽天カード通常分',        note:'上限なし',                     mult:1,   cap:null, defaultActive:true},
+  {id:'premium',  name:'楽天カード特典分（プレミアム）', note:'月間上限あり',           mult:1,   cap:5000, defaultActive:true},
+  {id:'mobile',   name:'楽天モバイル最強プラン',   note:'要エントリー',                 mult:4,   cap:2000, defaultActive:true},
+  {id:'carrier',  name:'モバイルキャリア決済',    note:'Android限定・要エントリー',     mult:2,   cap:1000, defaultActive:false},
+  {id:'hikari',   name:'Rakuten Turbo／楽天ひかり', note:'要エントリー',               mult:2,   cap:1000, defaultActive:true},
+  {id:'bank',     name:'楽天銀行＋カード引落',    note:'',                             mult:0.3, cap:1000, defaultActive:true},
+  {id:'toushin',  name:'投資信託',                note:'当月3万円以上・ポイント利用要', mult:0.5, cap:2000, defaultActive:true},
+  {id:'usstock',  name:'米国株式（円貨決済）',    note:'当月3万円以上・積立/無料ETF除く', mult:0.5, cap:2000, defaultActive:false},
+  {id:'books',    name:'楽天ブックス',            note:'1回3,000円以上',               mult:0.5, cap:500,  defaultActive:false},
+  {id:'fashion',  name:'Rakuten Fashionアプリ',   note:'',                             mult:0.5, cap:1000, defaultActive:false},
+];
+const MAX_MULT = SERVICES.reduce((s,x)=>s+x.mult,0);
+
+const $ = id => document.getElementById(id);
+const rowsEl = $('rows');
+const monthPicker = $('monthPicker');
+const historySelect = $('historySelect');
+const entryDate = $('entryDate');
+const entryItem = $('entryItem');
+const entryShop = $('entryShop');
+const entryAmount = $('entryAmount');
+const entryRowsEl = $('entryRows');
+const simDate = $('simDate');
+const simItem = $('simItem');
+const simShop = $('simShop');
+const simAmount = $('simAmount');
+const simRepeat = $('simRepeat');
+const simRepeatWrap = $('simRepeatWrap');
+const campNameSelect = $('campNameSelect');
+const campNameOther = $('campNameOther');
+const campStartDate = $('campStartDate');
+const campStartTime = $('campStartTime');
+const campEndDate = $('campEndDate');
+const campEndTime = $('campEndTime');
+const campCap = $('campCap');
+const campListEl = $('campList');
+const sportInfoListEl = $('sportInfoList');
+const s39Cap = $('s39Cap');
+const s39StartDate = $('s39StartDate');
+const s39StartTime = $('s39StartTime');
+const s39EndDate = $('s39EndDate');
+const s39EndTime = $('s39EndTime');
+const s39ListEl = $('s39List');
+const entryEagles = $('entryEagles');
+const entryVissel = $('entryVissel');
+const entryS39 = $('entryS39');
+const entryDuplicate = $('entryDuplicate');
+const simEagles = $('simEagles');
+const simVissel = $('simVissel');
+const simS39 = $('simS39');
+const simDuplicate = $('simDuplicate');
+const editBanner = $('editBanner');
+const planDate = $('planDate');
+const planItem = $('planItem');
+const planShop = $('planShop');
+const planAmount = $('planAmount');
+const planRepeat = $('planRepeat');
+const planRepeatWrap = $('planRepeatWrap');
+const planEagles = $('planEagles');
+const planVissel = $('planVissel');
+const planS39 = $('planS39');
+const planDuplicate = $('planDuplicate');
+const planRowsEl = $('planRows');
+const planFabBtn = $('planFabBtn');
+const planModalOverlay = $('planModalOverlay');
+const planCloseBtn = $('planCloseBtn');
+const addPlanBtn = $('addPlanBtn');
+const commitAllPlanBtn = $('commitAllPlanBtn');
+const planGiftMode = $('planGiftMode');
+const cancelEditBtn = $('cancelEditBtn');
+const exportBtn = $('exportBtn');
+const importBtn = $('importBtn');
+const importFile = $('importFile');
+const backupStatus = $('backupStatus');
+const entryRepeat = $('entryRepeat');
+const entryRepeatWrap = $('entryRepeatWrap');
+const rankSelect = $('rankSelect');
+const RANK_MULT = { none:0, gold:1, platinum:2, diamond:3 };
+let memberRank = 'diamond';
+
+function fmt(n){ return Math.round(n).toLocaleString('ja-JP'); }
+function parseAmount(v){ return parseInt(String(v).replace(/[^\d]/g,''),10) || 0; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function pointsForAmount(amount, s){
+  const taxEx = Math.floor(amount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const raw = Math.floor(basePt * s.mult);
+  return s.cap ? Math.min(raw, s.cap) : raw;
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function ymOf(dateStr){ return dateStr ? dateStr.slice(0,7) : ''; }
+
+let state = { entries:[], active:{}, campaigns:[], s39Events:[], plan:[] };
+SERVICES.forEach(s=> state.active[s.id] = s.defaultActive);
+let currentBaseAmount = 0;
+
+/* ================= SPU rows ================= */
+function buildRows(){
+  rowsEl.innerHTML = SERVICES.map(s=>`
+    <div class="row" id="row-${s.id}">
+      <input type="checkbox" id="chk-${s.id}" ${state.active[s.id]?'checked':''}>
+      <div class="svc"><div class="svc-name">${s.name}</div>${s.note?`<div class="svc-note">${s.note}</div>`:''}</div>
+      <div class="mult">+${s.mult}倍</div>
+      <div class="pt-block"><div id="pt-${s.id}">0 pt</div><div class="cap">${s.cap? '上限 '+s.cap.toLocaleString('ja-JP')+'pt' : '上限なし'}</div></div>
+      <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" id="bar-${s.id}" style="width:0%"></div></div><div class="bar-caption" id="cap-note-${s.id}"></div></div>
+    </div>
+  `).join('');
+  SERVICES.forEach(s=>{
+    $('chk-'+s.id).addEventListener('change', e=>{ state.active[s.id]=e.target.checked; recalc(); scheduleSave(); });
+  });
+}
+
+/* ================= purchase log ================= */
+function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+
+let editingEntryId = null;
+
+function renderEntries(){
+  const sorted = [...state.entries].sort((a,b)=> b.date.localeCompare(a.date));
+  entryRowsEl.innerHTML = sorted.map(en=>{
+    let tags = '';
+    if(en.repeat) tags += ' <span style="font-family:\'IBM Plex Mono\';font-size:10px;color:#8a7226;">[リピート]</span>';
+    if(en.sport>0) tags += ` <span class="sport-tag">勝ったら倍${en.sport===2?'(2)':''}</span>`;
+    if(en.s39) tags += en.amount>=S39_THRESHOLD ? ' <span class="s39-tag">39ショップ</span>' : ' <span class="s39-tag warn">39ショップ(3,980円未満)</span>';
+    if(en.duplicate) tags += ' <span class="s39-tag" style="background:#efe8d6;color:#8a6a26;">重複</span>';
+    const editingCls = en.id===editingEntryId ? ' entry-row-editing' : '';
+    return `
+    <tr data-id="${en.id}" class="entry-row-clickable${editingCls}">
+      <td class="col-date">${en.date}</td>
+      <td>${escapeHtml(en.item)}${tags}</td>
+      <td class="col-shop">${escapeHtml(en.shop||'')}</td>
+      <td class="col-amount">¥${fmt(en.amount)}</td>
+      <td class="col-del"><button class="del-btn" data-id="${en.id}">×</button></td>
+    </tr>
+  `;}).join('');
+  $('emptyNote').style.display = state.entries.length ? 'none' : 'block';
+  $('entryCount').textContent = state.entries.length + '件';
+  entryRowsEl.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if(editingEntryId === btn.dataset.id) cancelEdit();
+      state.entries = state.entries.filter(en=>en.id !== btn.dataset.id);
+      renderEntries(); recalc(); scheduleSave();
+    });
+  });
+  entryRowsEl.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.addEventListener('click', ()=> startEditEntry(tr.dataset.id));
+  });
+}
+
+function startEditEntry(id){
+  const en = state.entries.find(e=>e.id===id);
+  if(!en) return;
+  editingEntryId = id;
+  entryDate.value = en.date;
+  entryItem.value = en.item;
+  entryShop.value = en.shop || '';
+  entryAmount.value = en.amount.toLocaleString('ja-JP');
+  entryRepeat.checked = !!en.repeat;
+  entryEagles.checked = en.sport===1 || en.sport===2;
+  entryVissel.checked = en.sport===2;
+  entryS39.checked = !!en.s39;
+  entryDuplicate.checked = !!en.duplicate;
+  updateEntryRepeatVisibility();
+  addEntryBtn.textContent = '更新';
+  editBanner.style.display = 'flex';
+  renderEntries();
+}
+
+function cancelEdit(){
+  editingEntryId = null;
+  entryItem.value=''; entryShop.value=''; entryAmount.value=''; entryRepeat.checked=false;
+  entryEagles.checked=false; entryVissel.checked=false; entryS39.checked=false; entryDuplicate.checked=false;
+  addEntryBtn.textContent = '追加';
+  editBanner.style.display = 'none';
+  renderEntries();
+}
+
+function addEntryRecord(date, item, shop, amount, repeat, sport, s39, duplicate){
+  state.entries.push({ id:uid(), date, item, shop, amount, repeat: !!repeat, sport: sport||0, s39: !!s39, duplicate: !!duplicate });
+  addShopToHistory(shop);
+  renderEntries(); recalc(); scheduleSave();
+}
+
+function addEntry(){
+  const date = entryDate.value;
+  const item = entryItem.value.trim();
+  const shop = entryShop.value.trim();
+  const amount = parseAmount(entryAmount.value);
+  if(!date || !item || amount<=0){
+    if(!date) entryDate.focus(); else if(!item) entryItem.focus(); else entryAmount.focus();
+    return;
+  }
+  const sport = (entryEagles.checked?1:0) + (entryVissel.checked?1:0);
+  if(editingEntryId){
+    const en = state.entries.find(e=>e.id===editingEntryId);
+    if(en){
+      en.date=date; en.item=item; en.shop=shop; en.amount=amount;
+      en.repeat=entryRepeat.checked; en.sport=sport; en.s39=entryS39.checked; en.duplicate=entryDuplicate.checked;
+    }
+    addShopToHistory(shop);
+    editingEntryId = null;
+    addEntryBtn.textContent = '追加';
+    editBanner.style.display = 'none';
+    renderEntries(); recalc(); scheduleSave();
+  } else {
+    addEntryRecord(date, item, shop, amount, entryRepeat.checked, sport, entryS39.checked, entryDuplicate.checked);
+  }
+  entryItem.value=''; entryShop.value=''; entryAmount.value=''; entryRepeat.checked=false;
+  entryEagles.checked=false; entryVissel.checked=false; entryS39.checked=false; entryDuplicate.checked=false; entryItem.focus();
+}
+
+function isDay(dateStr, day){
+  if(!dateStr) return false;
+  return parseInt(dateStr.slice(8,10),10) === day;
+}
+function updateEntryRepeatVisibility(){
+  entryRepeatWrap.style.display = isDay(entryDate.value, 1) ? 'flex' : 'none';
+}
+
+/* extraEntryは単一オブジェクトでも配列でも受け取れる（買い物予定リストのまとめ計算用） */
+function combinedList(extra){
+  if(!extra) return state.entries;
+  const extras = Array.isArray(extra) ? extra : [extra];
+  return [...state.entries, ...extras];
+}
+
+/* ================= campaigns (marathon / super sale) ================= */
+function campaignCalc(camp, extraEntry){
+  const list = combinedList(extraEntry);
+  const relevant = list.filter(e => e.date >= camp.startDate && e.date <= camp.endDate);
+  const shopSet = new Set(
+    relevant.filter(e => !e.duplicate).map(e => ((e.shop && e.shop.trim()) || e.item.trim()).toLowerCase()).filter(Boolean)
+  );
+  const shopCount = shopSet.size;
+  const totalAmount = relevant.reduce((s,e)=>s+e.amount,0);
+  const taxEx = Math.floor(totalAmount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const raw = basePt * Math.max(0, shopCount-1);
+  const capped = Math.min(raw, camp.cap || 0);
+  return { shopCount, totalAmount, capped, shopSet };
+}
+
+/* ================= Appleギフトカードで上限まで購入額を逆算 ================= */
+function yenNeededForCap(totalAmount, mult, cap){
+  // mult は現在の（または想定の）買い回り倍率。totalAmount(税込)全体に対してmult倍が適用される前提で、
+  // capに到達するために全体でいくら（税込）必要かを返す。すでに到達済みならnullを返す。
+  if(mult <= 0) return null;
+  const neededBasePt = Math.ceil(cap / mult);
+  const neededTaxEx = neededBasePt * 100;
+  const neededAmount = Math.ceil(neededTaxEx * 1.1);
+  return neededAmount;
+}
+function giftCardCalc(camp, mode, planExtra){
+  const base = (planExtra && planExtra.length) ? planExtra : null;
+  const r = campaignCalc(camp, base);
+
+  if(mode === 'existing'){
+    const mult = Math.max(0, r.shopCount - 1);
+    let need = null;
+    if(mult > 0){
+      const totalNeeded = yenNeededForCap(r.totalAmount, mult, camp.cap);
+      need = totalNeeded===null ? null : Math.max(0, totalNeeded - r.totalAmount);
+    }
+    return { shopCount: r.shopCount, capped: r.capped, cap: camp.cap, mult, need, mode };
+  } else {
+    const mult = r.shopCount; // 新規店舗を加えると (shopCount+1-1) = shopCount
+    let need = null;
+    if(mult > 0){
+      const totalNeeded = yenNeededForCap(r.totalAmount, mult, camp.cap);
+      need = totalNeeded===null ? null : Math.max(0, totalNeeded - r.totalAmount);
+    }
+    return { shopCount: r.shopCount, capped: r.capped, cap: camp.cap, mult, need, mode };
+  }
+}
+
+/* ギフトカード試算用の仮想エントリーを作る（mode='new'は必ず新規店舗扱い、'existing'は必ず重複扱い） */
+function makeGiftHypEntry(camp, mode, amount){
+  return {
+    date: camp.startDate, item: '(試算)', shop: mode==='new' ? '__gift_sim_new_shop__' : '',
+    amount, duplicate: mode === 'existing'
+  };
+}
+
+/* 「この金額を買ったらどうなるか」を試算する。mode='new'は必ず新規店舗扱い、'existing'は必ず重複（店舗数据え置き）扱いで計算する */
+function giftCardSimulate(camp, mode, amount, planExtra){
+  const base = (planExtra && planExtra.length) ? planExtra : null;
+  const before = campaignCalc(camp, base);
+  if(!amount || amount <= 0){
+    return { before, after: before, marginal: 0, rate: 0 };
+  }
+  const hypEntry = makeGiftHypEntry(camp, mode, amount);
+  const combined = base ? [...base, hypEntry] : hypEntry;
+  const after = campaignCalc(camp, combined);
+  const marginal = after.capped - before.capped;
+  const rate = amount ? (marginal/amount*100) : 0;
+  return { before, after, marginal, rate };
+}
+
+function giftSimBoxHtml(camp, mode, amount, planExtra){
+  if(!amount || amount <= 0) return '';
+  const s = giftCardSimulate(camp, mode, amount, planExtra);
+  const hitCap = s.after.capped >= camp.cap;
+  return `
+    <div class="gift-sim-box">
+      <div class="gift-sim-row"><span>¥${fmt(amount)}買った場合の店舗数</span><span class="v">${s.before.shopCount} → ${s.after.shopCount}店舗</span></div>
+      <div class="gift-sim-row"><span>このマラソン等の獲得pt</span><span class="v">${fmt(s.before.capped)} → ${fmt(s.after.capped)}pt${hitCap?'（上限到達）':''}</span></div>
+      <div class="gift-sim-row"><span>この購入による増加分</span><span class="v ${s.marginal===0?'warn':''}">+${fmt(s.marginal)}pt</span></div>
+      <div class="gift-sim-row"><span>この購入だけの実質還元率</span><span class="v">${s.rate.toFixed(2)}%</span></div>
+    </div>
+  `;
+}
+
+function renderGiftCardCalc(){
+  const wrap = $('giftCardList');
+  const mode = $('giftMode').value;
+  const amount = parseAmount($('giftAmount').value);
+  if(!wrap) return;
+  if(state.campaigns.length === 0){
+    wrap.innerHTML = '<div class="empty-note">お買い物マラソン／スーパーセールが登録されると、ここに上限までの目安金額が表示されます。</div>';
+    return;
+  }
+  wrap.innerHTML = state.campaigns.map(camp=>{
+    const g = giftCardCalc(camp, mode);
+    const alreadyCapped = g.capped >= g.cap;
+    let body = '';
+    if(alreadyCapped){
+      body = `<div class="gift-line full">すでに上限 ${fmt(g.cap)}pt に到達しています。追加購入の上乗せ効果はありません。</div>`;
+    } else if(mode === 'existing'){
+      body = `
+        <div class="gift-line">
+          <span class="gift-label">重複扱いで買い足す場合（店舗数${g.shopCount}のまま・+${g.mult}倍）</span>
+          <span class="gift-amount">${g.need===null ? '—' : '¥'+fmt(g.need)}</span>
+        </div>
+      `;
+    } else {
+      body = `
+        <div class="gift-line">
+          <span class="gift-label">新規店舗として買う場合（店舗数${g.shopCount}→${g.shopCount+1}・+${g.mult}倍に上がる）</span>
+          <span class="gift-amount">${g.need===null ? '—' : '¥'+fmt(g.need)}</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="gift-card-item">
+        <div class="camp-name">${escapeHtml(camp.name)}</div>
+        <div class="camp-period">${camp.startDate} ${camp.startTime||'20:00'} 〜 ${camp.endDate} ${camp.endTime||'01:59'} ／ 現在${g.shopCount}店舗・${fmt(g.capped)}pt / ${fmt(g.cap)}pt</div>
+        ${body}
+        ${giftSimBoxHtml(camp, mode, amount)}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderCampaigns(){
+  campListEl.innerHTML = '';
+  $('campEmptyNote').style.display = state.campaigns.length ? 'none' : 'block';
+  state.campaigns.forEach(camp=>{
+    const r = campaignCalc(camp);
+    const pct = camp.cap ? Math.min(100, r.capped/camp.cap*100) : 0;
+    const el = document.createElement('div');
+    el.className = 'camp-item';
+    el.innerHTML = `
+      <div>
+        <div class="camp-name">${escapeHtml(camp.name)}</div>
+        <div class="camp-period">${camp.startDate} ${camp.startTime||'20:00'} 〜 ${camp.endDate} ${camp.endTime||'01:59'}</div>
+      </div>
+      <div>
+        <div class="camp-stats">対象 ${r.shopCount}店舗／¥${fmt(r.totalAmount)}</div>
+        <div class="camp-bar-track"><div class="camp-bar-fill${r.capped>=camp.cap?' full':''}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="camp-pt">${fmt(r.capped)}pt<span class="cap">/ ${fmt(camp.cap)}pt</span></div>
+    `;
+    campListEl.appendChild(el);
+  });
+  // rebuild delete affordance via click on name (simplify: add small delete after pt) 
+  campListEl.querySelectorAll('.camp-item').forEach((el,i)=>{
+    const delBtn = document.createElement('button');
+    delBtn.className='del-btn'; delBtn.textContent='×'; delBtn.style.justifySelf='end';
+    delBtn.addEventListener('click', ()=>{
+      state.campaigns = state.campaigns.filter(c=>c.id !== state.campaigns[i].id);
+      renderCampaigns(); recalc(); scheduleSave();
+    });
+    el.appendChild(delBtn);
+  });
+}
+
+function datesOverlap(s1,e1,s2,e2){
+  return s1 <= e2 && s2 <= e1;
+}
+
+function addCampaign(){
+  const errEl = $('campError');
+  errEl.textContent = ''; errEl.className = 'form-error';
+  const name = campNameSelect.value === '__other__' ? campNameOther.value.trim() : campNameSelect.value;
+  const startDate = campStartDate.value;
+  const startTime = campStartTime.value || '20:00';
+  const endDate = campEndDate.value;
+  const endTime = campEndTime.value || '01:59';
+  const cap = parseAmount(campCap.value);
+  if(campNameSelect.value === '__other__' && !name){ errEl.textContent = '名称を入力してください。'; campNameOther.focus(); return; }
+  if(!startDate || !endDate){ errEl.textContent = '開始日・終了日を入力してください。'; (startDate?campEndDate:campStartDate).focus(); return; }
+  if(endDate < startDate){ errEl.textContent = '終了日が開始日より前になっています。'; campEndDate.focus(); return; }
+  if(cap<=0){ errEl.textContent = '上限ポイントを入力してください。'; campCap.focus(); return; }
+  const overlap = state.campaigns.find(c => datesOverlap(startDate, endDate, c.startDate, c.endDate));
+  state.campaigns.push({ id:uid(), name, startDate, startTime, endDate, endTime, cap });
+  campNameSelect.value = 'お買い物マラソン'; campNameOther.value=''; campNameOther.style.display='none';
+  campStartDate.value=''; campStartTime.value='20:00'; campEndDate.value=''; campEndTime.value='01:59'; campCap.value='';
+  renderCampaigns(); recalc(); scheduleSave();
+  if(overlap){
+    errEl.textContent = `⚠ 期間が重複するイベントが既に登録されています：「${overlap.name}」（${overlap.startDate}〜${overlap.endDate}）。二重登録でなければ問題ありません。`;
+    errEl.className = 'form-error warning';
+  }
+}
+
+/* ================= sports win bonus (勝ったら倍) — entries由来で自動集計 ================= */
+const SPORT_CAP = 1000;
+function sportsGrouped(extraEntry){
+  const list = combinedList(extraEntry);
+  const map = {};
+  list.forEach(e=>{
+    if(e.sport>0){
+      if(!map[e.date]) map[e.date] = { teams:0, amount:0 };
+      map[e.date].teams = Math.max(map[e.date].teams, e.sport);
+      map[e.date].amount += e.amount;
+    }
+  });
+  return map;
+}
+function sportsTotalCalc(extraEntry){
+  const map = sportsGrouped(extraEntry);
+  let total = 0;
+  const rows = [];
+  Object.keys(map).sort().reverse().forEach(date=>{
+    const { teams, amount } = map[date];
+    const taxEx = Math.floor(amount/1.1);
+    const basePt = Math.floor(taxEx/100);
+    const capped = Math.min(basePt*teams, SPORT_CAP);
+    total += capped;
+    rows.push({ date, teams, amount, capped });
+  });
+  return { total, rows };
+}
+function sportsMarginalForDate(date, extraEntry){
+  const before = sportsGrouped()[date] || { teams:0, amount:0 };
+  const beforeTaxEx = Math.floor(before.amount/1.1);
+  const beforePt = Math.min(Math.floor(beforeTaxEx/100)*before.teams, SPORT_CAP);
+  const after = sportsGrouped(extraEntry)[date] || { teams:0, amount:0 };
+  const afterTaxEx = Math.floor(after.amount/1.1);
+  const afterPt = Math.min(Math.floor(afterTaxEx/100)*after.teams, SPORT_CAP);
+  return { beforePt, afterPt, teams: after.teams };
+}
+function renderSportsInfo(){
+  const { rows } = sportsTotalCalc();
+  sportInfoListEl.innerHTML = '';
+  $('sportEmptyNote').style.display = rows.length ? 'none' : 'block';
+  rows.forEach(r=>{
+    const pct = Math.min(100, r.capped/SPORT_CAP*100);
+    const el = document.createElement('div');
+    el.className = 'camp-item';
+    el.innerHTML = `
+      <div>
+        <div class="camp-name">${r.date}</div>
+        <div class="camp-period">${r.teams===2?'2チーム勝利（+2倍）':'1チーム勝利（+1倍）'}</div>
+      </div>
+      <div>
+        <div class="camp-stats">当日購入 ¥${fmt(r.amount)}</div>
+        <div class="camp-bar-track"><div class="camp-bar-fill sport${r.capped>=SPORT_CAP?' full':''}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="camp-pt">${fmt(r.capped)}pt<span class="cap">/ ${SPORT_CAP}pt</span></div>
+    `;
+    sportInfoListEl.appendChild(el);
+  });
+}
+
+/* ================= 39ショップ（送料無料ライン39キャンペーン） — 開催回ごとに期間登録 ================= */
+const S39_THRESHOLD = 3980;
+function shop39EventCalc(ev, extraEntry){
+  const list = combinedList(extraEntry);
+  const relevant = list.filter(e => e.s39 && e.amount >= S39_THRESHOLD && e.date >= ev.startDate && e.date <= ev.endDate);
+  let raw = 0;
+  relevant.forEach(e=>{
+    const taxEx = Math.floor(e.amount/1.1);
+    raw += Math.floor(taxEx/100);
+  });
+  const capped = Math.min(raw, ev.cap || 0);
+  const totalAmount = relevant.reduce((s,e)=>s+e.amount,0);
+  return { capped, totalAmount, orderCount: relevant.length };
+}
+function shop39TotalCalc(extraEntry){
+  let capped = 0;
+  state.s39Events.forEach(ev=>{ capped += shop39EventCalc(ev, extraEntry).capped; });
+  return { capped };
+}
+function renderShop39(){
+  s39ListEl.innerHTML = '';
+  $('s39EmptyNote').style.display = state.s39Events.length ? 'none' : 'block';
+  state.s39Events.forEach(ev=>{
+    const r = shop39EventCalc(ev);
+    const pct = ev.cap ? Math.min(100, r.capped/ev.cap*100) : 0;
+    const el = document.createElement('div');
+    el.className = 'camp-item';
+    el.innerHTML = `
+      <div>
+        <div class="camp-name">39ショップ</div>
+        <div class="camp-period">${ev.startDate} ${ev.startTime||'20:00'} 〜 ${ev.endDate} ${ev.endTime||'01:59'}</div>
+      </div>
+      <div>
+        <div class="camp-stats">対象注文 ${r.orderCount}件（税込3,980円以上）／¥${fmt(r.totalAmount)}</div>
+        <div class="camp-bar-track"><div class="camp-bar-fill${r.capped>=ev.cap?' full':''}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="camp-pt">${fmt(r.capped)}pt<span class="cap">/ ${fmt(ev.cap)}pt</span></div>
+    `;
+    s39ListEl.appendChild(el);
+  });
+  s39ListEl.querySelectorAll('.camp-item').forEach((el,i)=>{
+    const delBtn = document.createElement('button');
+    delBtn.className='del-btn'; delBtn.textContent='×'; delBtn.style.justifySelf='end';
+    delBtn.addEventListener('click', ()=>{
+      state.s39Events = state.s39Events.filter(e=>e.id !== state.s39Events[i].id);
+      renderShop39(); recalc(); scheduleSave();
+    });
+    el.appendChild(delBtn);
+  });
+}
+function addShop39Event(){
+  const errEl = $('s39Error');
+  errEl.textContent = ''; errEl.className = 'form-error';
+  const startDate = s39StartDate.value;
+  const startTime = s39StartTime.value || '20:00';
+  const endDate = s39EndDate.value;
+  const endTime = s39EndTime.value || '01:59';
+  const cap = parseAmount(s39Cap.value);
+  if(!startDate || !endDate){ errEl.textContent = '開始日・終了日を入力してください。'; (startDate?s39EndDate:s39StartDate).focus(); return; }
+  if(endDate < startDate){ errEl.textContent = '終了日が開始日より前になっています。'; s39EndDate.focus(); return; }
+  if(cap<=0){ errEl.textContent = '上限ポイントを入力してください。'; s39Cap.focus(); return; }
+  const overlap = state.s39Events.find(ev => datesOverlap(startDate, endDate, ev.startDate, ev.endDate));
+  state.s39Events.push({ id:uid(), startDate, startTime, endDate, endTime, cap });
+  s39StartDate.value=''; s39StartTime.value='20:00'; s39EndDate.value=''; s39EndTime.value='01:59'; s39Cap.value='';
+  renderShop39(); recalc(); scheduleSave();
+  if(overlap){
+    errEl.textContent = `⚠ 期間が重複する39ショップが既に登録されています（${overlap.startDate}〜${overlap.endDate}）。二重登録でなければ問題ありません。`;
+    errEl.className = 'form-error warning';
+  }
+}
+
+/* ================= 5と0のつく日 ================= */
+const FIVE_ZERO_CAP = 1000;
+function isFiveZeroDate(dateStr){
+  if(!dateStr) return false;
+  const day = parseInt(dateStr.slice(8,10),10);
+  return [5,10,15,20,25,30].includes(day);
+}
+function fiveZeroCalc(extraEntry){
+  const list = combinedList(extraEntry);
+  const relevant = list.filter(e => isFiveZeroDate(e.date));
+  const totalAmount = relevant.reduce((s,e)=>s+e.amount,0);
+  const taxEx = Math.floor(totalAmount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const capped = Math.min(basePt, FIVE_ZERO_CAP);
+  const dates = [...new Set(relevant.map(e=>e.date))].sort();
+  return { totalAmount, capped, dates };
+}
+function renderFiveZero(){
+  const r = fiveZeroCalc();
+  $('fzStats').textContent = `対象日の買い物：¥${fmt(r.totalAmount)}`;
+  const pct = Math.min(100, r.capped/FIVE_ZERO_CAP*100);
+  const bar = $('fzBar');
+  bar.style.width = pct+'%';
+  bar.className = 'camp-bar-fill fivezero' + (r.capped>=FIVE_ZERO_CAP?' full':'');
+  $('fzPt').innerHTML = fmt(r.capped) + ' pt <span style="font-family:\'IBM Plex Mono\';font-size:11px;color:#5b6270;font-weight:400;">/ 1,000pt</span>';
+  $('fzDates').innerHTML = r.dates.length ? r.dates.map(d=>`<span>${d}</span>`).join('') : '（対象日の記録はまだありません）';
+}
+
+/* ================= ワンダフルデー（毎月1日） ================= */
+const WONDERFUL_CAP = 1000;
+const WONDERFUL_THRESHOLD = 3000;
+function wonderfulAllCalc(extraEntry){
+  const list = combinedList(extraEntry);
+  const relevant = list.filter(e => isDay(e.date, 1));
+  const totalAmount = relevant.reduce((s,e)=>s+e.amount,0);
+  if(totalAmount < WONDERFUL_THRESHOLD) return { totalAmount, capped:0 };
+  const taxEx = Math.floor(totalAmount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const capped = Math.min(basePt*2, WONDERFUL_CAP);
+  return { totalAmount, capped };
+}
+function wonderfulRepeatCalc(extraEntry){
+  const list = combinedList(extraEntry);
+  const dayTotal = list.filter(e=>isDay(e.date,1)).reduce((s,e)=>s+e.amount,0);
+  if(dayTotal < WONDERFUL_THRESHOLD) return { totalAmount:0, capped:0 };
+  const repeatList = list.filter(e => isDay(e.date, 1) && e.repeat);
+  const totalAmount = repeatList.reduce((s,e)=>s+e.amount,0);
+  const taxEx = Math.floor(totalAmount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const capped = Math.min(basePt, WONDERFUL_CAP);
+  return { totalAmount, capped };
+}
+function renderWonderful(){
+  const all = wonderfulAllCalc();
+  $('wfStats').textContent = `対象日の買い物：¥${fmt(all.totalAmount)}`;
+  const pctAll = Math.min(100, all.capped/WONDERFUL_CAP*100);
+  const barAll = $('wfBar');
+  barAll.style.width = pctAll+'%';
+  barAll.className = 'camp-bar-fill wonderful' + (all.capped>=WONDERFUL_CAP?' full':'');
+  $('wfPt').innerHTML = fmt(all.capped) + ' pt <span>/ 1,000pt</span>';
+
+  const rep = wonderfulRepeatCalc();
+  $('wfrStats').textContent = `リピート購入としてチェックした分：¥${fmt(rep.totalAmount)}`;
+  const pctRep = Math.min(100, rep.capped/WONDERFUL_CAP*100);
+  const barRep = $('wfrBar');
+  barRep.style.width = pctRep+'%';
+  barRep.className = 'camp-bar-fill wonderful' + (rep.capped>=WONDERFUL_CAP?' full':'');
+  $('wfrPt').innerHTML = fmt(rep.capped) + ' pt <span>/ 1,000pt</span>';
+}
+
+/* ================= 18日ご愛顧感謝デー ================= */
+const D18_CAP = 1000;
+function day18Calc(extraEntry){
+  const list = combinedList(extraEntry);
+  const relevant = list.filter(e => isDay(e.date, 18));
+  const totalAmount = relevant.reduce((s,e)=>s+e.amount,0);
+  const mult = RANK_MULT[memberRank] || 0;
+  const taxEx = Math.floor(totalAmount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const capped = Math.min(basePt*mult, D18_CAP);
+  return { totalAmount, capped, mult };
+}
+function renderDay18(){
+  const r = day18Calc();
+  $('d18Stats').textContent = `対象日の買い物：¥${fmt(r.totalAmount)}（現在ランクの倍率 +${r.mult}倍）`;
+  const pct = Math.min(100, r.capped/D18_CAP*100);
+  const bar = $('d18Bar');
+  bar.style.width = pct+'%';
+  bar.className = 'camp-bar-fill eighteen' + (r.capped>=D18_CAP?' full':'');
+  $('d18Pt').innerHTML = fmt(r.capped) + ' pt <span>/ 1,000pt</span>';
+}
+
+/* ================= プレミアムカードデー（毎週火・木） ================= */
+const PCD_CAP = 10000;
+function isTueOrThu(dateStr){
+  if(!dateStr) return false;
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay(); // 0=日,1=月,2=火,...4=木...
+  return day === 2 || day === 4;
+}
+function premiumDayCalc(extraEntry){
+  const list = combinedList(extraEntry);
+  const relevant = list.filter(e => isTueOrThu(e.date));
+  const totalAmount = relevant.reduce((s,e)=>s+e.amount,0);
+  const taxEx = Math.floor(totalAmount/1.1);
+  const basePt = Math.floor(taxEx/100);
+  const capped = Math.min(basePt, PCD_CAP);
+  return { totalAmount, capped };
+}
+function renderPremiumDay(){
+  const r = premiumDayCalc();
+  $('pcdStats').textContent = `対象日の買い物：¥${fmt(r.totalAmount)}`;
+  const pct = Math.min(100, r.capped/PCD_CAP*100);
+  const bar = $('pcdBar');
+  bar.style.width = pct+'%';
+  bar.className = 'camp-bar-fill premium' + (r.capped>=PCD_CAP?' full':'');
+  $('pcdPt').innerHTML = fmt(r.capped) + ` pt <span>/ ${fmt(PCD_CAP)}pt</span>`;
+}
+
+/* ================= main recalc ================= */
+function currentTotalPt(){
+  let t = 0;
+  SERVICES.forEach(s=>{ if(state.active[s.id]) t += pointsForAmount(currentBaseAmount, s); });
+  return t;
+}
+
+/* extraList（配列）を実際の記録に追加した場合の、全プール合算の増分ポイントを計算する */
+function grandMarginalForExtra(extraList){
+  if(!extraList || extraList.length===0) return 0;
+  const beforeAmount = currentBaseAmount;
+  const afterAmount = currentBaseAmount + extraList.reduce((s,e)=>s+e.amount,0);
+  let spuMarginal = 0;
+  SERVICES.forEach(s=>{
+    if(!state.active[s.id]) return;
+    spuMarginal += pointsForAmount(afterAmount, s) - pointsForAmount(beforeAmount, s);
+  });
+  let campMarginal = 0;
+  state.campaigns.forEach(c=> campMarginal += campaignCalc(c, extraList).capped - campaignCalc(c).capped );
+  let s39Marginal = 0;
+  state.s39Events.forEach(ev=> s39Marginal += shop39EventCalc(ev, extraList).capped - shop39EventCalc(ev).capped );
+  const sportMarginal = sportsTotalCalc(extraList).total - sportsTotalCalc().total;
+  const fzMarginal = fiveZeroCalc(extraList).capped - fiveZeroCalc().capped;
+  const wfMarginal = (wonderfulAllCalc(extraList).capped + wonderfulRepeatCalc(extraList).capped)
+                    - (wonderfulAllCalc().capped + wonderfulRepeatCalc().capped);
+  const d18Marginal = day18Calc(extraList).capped - day18Calc().capped;
+  const pcdMarginal = premiumDayCalc(extraList).capped - premiumDayCalc().capped;
+  return spuMarginal + campMarginal + s39Marginal + sportMarginal + fzMarginal + wfMarginal + d18Marginal + pcdMarginal;
+}
+
+/* ================= 買い物予定リスト ================= */
+function updatePlanRepeatVisibility(){
+  planRepeatWrap.style.display = isDay(planDate.value, 1) ? 'flex' : 'none';
+}
+
+let editingPlanId = null;
+
+function renderPlan(){
+  const ordered = [...state.plan].sort((a,b)=> a.date.localeCompare(b.date));
+  let rowsHtml = '';
+  let cumulative = [];
+  ordered.forEach(item=>{
+    const before = grandMarginalForExtra(cumulative);
+    cumulative = [...cumulative, item];
+    const after = grandMarginalForExtra(cumulative);
+    const marginal = after - before;
+
+    let tags = '';
+    if(item.repeat) tags += '[リピート]';
+    if(item.sport>0) tags += `[勝ったら倍${item.sport===2?'(2)':''}]`;
+    if(item.s39) tags += '[39ショップ]';
+    if(item.duplicate) tags += '[重複]';
+
+    const editingCls = item.id===editingPlanId ? ' entry-row-editing' : '';
+    rowsHtml += `
+      <tr data-id="${item.id}" class="entry-row-clickable${editingCls}">
+        <td class="col-date">${item.date}</td>
+        <td>${escapeHtml(item.item)}${tags?` <span class="plan-tags">${tags}</span>`:''}</td>
+        <td class="col-shop">${escapeHtml(item.shop||'')}</td>
+        <td class="col-amount">¥${fmt(item.amount)}</td>
+        <td class="plan-pt">+${fmt(marginal)}pt</td>
+        <td><button class="plan-commit-btn" data-id="${item.id}">記録へ</button></td>
+        <td><button class="del-btn" data-id="${item.id}">×</button></td>
+      </tr>
+    `;
+  });
+  planRowsEl.innerHTML = rowsHtml;
+  $('planEmptyNote').style.display = state.plan.length ? 'none' : 'block';
+
+  const totalMarginal = grandMarginalForExtra(state.plan);
+  $('planTotalPt').textContent = fmt(totalMarginal) + ' pt';
+  const planAmountSum = state.plan.reduce((s,p)=>s+p.amount,0);
+  $('planTotalAmount').textContent = '¥' + fmt(currentBaseAmount + planAmountSum);
+
+  planRowsEl.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if(editingPlanId === btn.dataset.id) cancelPlanEdit();
+      state.plan = state.plan.filter(p=>p.id !== btn.dataset.id);
+      renderPlan(); scheduleSave();
+    });
+  });
+  planRowsEl.querySelectorAll('.plan-commit-btn').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); commitPlanItem(btn.dataset.id); });
+  });
+  planRowsEl.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.addEventListener('click', ()=> startEditPlan(tr.dataset.id));
+  });
+
+  renderPlanCampaigns();
+  renderPlanGift();
+}
+
+function startEditPlan(id){
+  const item = state.plan.find(p=>p.id===id);
+  if(!item) return;
+  editingPlanId = id;
+  planDate.value = item.date;
+  planItem.value = item.item;
+  planShop.value = item.shop || '';
+  planAmount.value = item.amount.toLocaleString('ja-JP');
+  planRepeat.checked = !!item.repeat;
+  planEagles.checked = item.sport===1 || item.sport===2;
+  planVissel.checked = item.sport===2;
+  planS39.checked = !!item.s39;
+  planDuplicate.checked = !!item.duplicate;
+  updatePlanRepeatVisibility();
+  addPlanBtn.textContent = '更新';
+  $('planEditBanner').style.display = 'flex';
+  renderPlan();
+}
+
+function cancelPlanEdit(){
+  editingPlanId = null;
+  planItem.value=''; planShop.value=''; planAmount.value=''; planRepeat.checked=false;
+  planEagles.checked=false; planVissel.checked=false; planS39.checked=false; planDuplicate.checked=false;
+  addPlanBtn.textContent = '追加';
+  $('planEditBanner').style.display = 'none';
+  renderPlan();
+}
+
+function addPlan(){
+  const date = planDate.value;
+  const item = planItem.value.trim();
+  const shop = planShop.value.trim();
+  const amount = parseAmount(planAmount.value);
+  if(!date || !item || amount<=0){
+    if(!date) planDate.focus(); else if(!item) planItem.focus(); else planAmount.focus();
+    return;
+  }
+  const sport = (planEagles.checked?1:0) + (planVissel.checked?1:0);
+  addShopToHistory(shop);
+
+  if(editingPlanId){
+    const p = state.plan.find(p=>p.id===editingPlanId);
+    if(p){
+      p.date=date; p.item=item; p.shop=shop; p.amount=amount;
+      p.repeat=planRepeat.checked; p.sport=sport; p.s39=planS39.checked; p.duplicate=planDuplicate.checked;
+    }
+    editingPlanId = null;
+    addPlanBtn.textContent = '追加';
+    $('planEditBanner').style.display = 'none';
+  } else {
+    state.plan.push({
+      id:uid(), date, item, shop, amount,
+      repeat: planRepeat.checked, sport, s39: planS39.checked, duplicate: planDuplicate.checked
+    });
+  }
+  planItem.value=''; planShop.value=''; planAmount.value=''; planRepeat.checked=false;
+  planEagles.checked=false; planVissel.checked=false; planS39.checked=false; planDuplicate.checked=false;
+  renderPlan(); scheduleSave();
+  planItem.focus();
+}
+
+function commitPlanItem(id){
+  const item = state.plan.find(p=>p.id===id);
+  if(!item) return;
+  if(editingPlanId === id) cancelPlanEdit();
+  state.plan = state.plan.filter(p=>p.id!==id);
+  addEntryRecord(item.date, item.item, item.shop, item.amount, item.repeat, item.sport, item.s39, item.duplicate);
+  renderPlan(); scheduleSave();
+}
+
+function commitAllPlan(){
+  const items = [...state.plan].sort((a,b)=> a.date.localeCompare(b.date));
+  state.plan = [];
+  cancelPlanEdit();
+  items.forEach(item=>{
+    addEntryRecord(item.date, item.item, item.shop, item.amount, item.repeat, item.sport, item.s39, item.duplicate);
+  });
+  renderPlan(); scheduleSave();
+}
+
+function renderPlanCampaigns(){
+  const wrap = $('planCampaignList');
+  if(!wrap) return;
+  if(state.campaigns.length === 0){
+    wrap.innerHTML = '<div class="empty-note">お買い物マラソン／スーパーセールが登録されると、ここに計画実行後の見込みが表示されます。</div>';
+    return;
+  }
+  const giftMode = planGiftMode ? planGiftMode.value : 'new';
+  const giftAmountEl = $('planGiftAmount');
+  const giftAmount = giftAmountEl ? parseAmount(giftAmountEl.value) : 0;
+
+  wrap.innerHTML = state.campaigns.map(camp=>{
+    const before = campaignCalc(camp);
+    const extra = giftAmount > 0
+      ? [...state.plan, makeGiftHypEntry(camp, giftMode, giftAmount)]
+      : state.plan;
+    const after = campaignCalc(camp, extra);
+    const pct = camp.cap ? Math.min(100, after.capped/camp.cap*100) : 0;
+    const deltaPt = after.capped - before.capped;
+    const giftNote = giftAmount > 0 ? '＋ギフト試算分' : '';
+    return `
+      <div class="camp-item">
+        <div>
+          <div class="camp-name">${escapeHtml(camp.name)}</div>
+          <div class="camp-period">${camp.startDate} ${camp.startTime||'20:00'} 〜 ${camp.endDate} ${camp.endTime||'01:59'}</div>
+        </div>
+        <div>
+          <div class="camp-stats">計画後${giftNote}：${after.shopCount}店舗（現在${before.shopCount}店舗）／¥${fmt(after.totalAmount)}</div>
+          <div class="camp-bar-track"><div class="camp-bar-fill${after.capped>=camp.cap?' full':''}" style="width:${pct}%"></div></div>
+        </div>
+        <div class="camp-pt">${fmt(after.capped)}pt<span class="cap">/ ${fmt(camp.cap)}pt（+${fmt(deltaPt)}pt）</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderPlanGift(){
+  const wrap = $('planGiftList');
+  const mode = planGiftMode.value;
+  const amount = parseAmount($('planGiftAmount').value);
+  if(!wrap) return;
+  if(state.campaigns.length === 0){
+    wrap.innerHTML = '<div class="empty-note">お買い物マラソン／スーパーセールが登録されると、ここに目安金額が表示されます。</div>';
+    return;
+  }
+  wrap.innerHTML = state.campaigns.map(camp=>{
+    const g = giftCardCalc(camp, mode, state.plan);
+    const alreadyCapped = g.capped >= g.cap;
+    let body = '';
+    if(alreadyCapped){
+      body = `<div class="gift-line full">この計画を実行すると、すでに上限 ${fmt(g.cap)}pt に到達します。追加購入の上乗せ効果はありません。</div>`;
+    } else if(mode === 'existing'){
+      body = `
+        <div class="gift-line">
+          <span class="gift-label">重複扱いで買い足す場合（店舗数${g.shopCount}のまま・+${g.mult}倍）</span>
+          <span class="gift-amount">${g.need===null ? '—' : '¥'+fmt(g.need)}</span>
+        </div>
+      `;
+    } else {
+      body = `
+        <div class="gift-line">
+          <span class="gift-label">新規店舗として買う場合（店舗数${g.shopCount}→${g.shopCount+1}・+${g.mult}倍に上がる）</span>
+          <span class="gift-amount">${g.need===null ? '—' : '¥'+fmt(g.need)}</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="gift-card-item">
+        <div class="camp-name">${escapeHtml(camp.name)}</div>
+        <div class="camp-period">計画実行後：${g.shopCount}店舗・${fmt(g.capped)}pt / ${fmt(g.cap)}pt</div>
+        ${body}
+        ${giftSimBoxHtml(camp, mode, amount, state.plan)}
+      </div>
+    `;
+  }).join('');
+}
+
+function openPlanModal(){
+  planModalOverlay.classList.add('show');
+  updatePlanRepeatVisibility();
+  renderPlan();
+}
+function closePlanModal(){
+  planModalOverlay.classList.remove('show');
+  cancelPlanEdit();
+}
+
+function renderTodayBadges(){
+  const wrap = $('todayBadges');
+  if(!wrap) return;
+  const today = todayStr();
+  const badges = [];
+  if(isFiveZeroDate(today)) badges.push('5と0のつく日');
+  if(isDay(today, 1)) badges.push('ワンダフルデー');
+  if(isDay(today, 18)) badges.push(`18日ご愛顧感謝デー（+${RANK_MULT[memberRank]||0}倍）`);
+  if(isTueOrThu(today)) badges.push('プレミアムカードデー');
+  state.campaigns.forEach(c=>{ if(today >= c.startDate && today <= c.endDate) badges.push(`開催中：${c.name}`); });
+  state.s39Events.forEach(ev=>{ if(today >= ev.startDate && today <= ev.endDate) badges.push('開催中：39ショップ'); });
+
+  if(badges.length === 0){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = badges.map(b=>{
+    const isCamp = b.startsWith('開催中');
+    return `<span class="today-badge${isCamp?' camp':''}">${escapeHtml(b)}</span>`;
+  }).join('');
+}
+
+function recalc(){
+  const entriesSum = state.entries.reduce((s,en)=>s+en.amount,0);
+  const amount = entriesSum;
+  currentBaseAmount = amount;
+
+  $('grandTotal').textContent = '¥'+fmt(amount);
+  $('statSpent').textContent = '¥'+fmt(amount);
+
+  const taxEx = Math.floor(amount/1.1);
+  const basePt = Math.floor(taxEx/100);
+
+  let spuTotal = 0, achievedMult = 0, cappedCount = 0, activeCount = 0;
+  SERVICES.forEach(s=>{
+    const row = $('row-'+s.id);
+    const isActive = state.active[s.id];
+    row.classList.toggle('inactive', !isActive);
+    if(!isActive){
+      $('pt-'+s.id).textContent = '0 pt';
+      $('bar-'+s.id).style.width = '0%';
+      $('cap-note-'+s.id).textContent = '未達成';
+      return;
+    }
+    activeCount++;
+    const pt = pointsForAmount(amount, s);
+    spuTotal += pt;
+    achievedMult += (pt / (basePt||1)) || 0;
+    $('pt-'+s.id).textContent = fmt(pt) + ' pt';
+    const bar = $('bar-'+s.id);
+    if(s.cap){
+      const pct = Math.min(100, (pt/s.cap)*100);
+      bar.style.width = pct+'%';
+      bar.className = 'bar-fill' + (pct>=100?' full':pct>=80?' warn':'');
+      if(pt>=s.cap){ cappedCount++; $('cap-note-'+s.id).textContent = '上限到達'; }
+      else{
+        const remainPt = s.cap - pt;
+        const remainTaxEx = Math.ceil(remainPt / s.mult) * 100;
+        const remainYen = Math.ceil(remainTaxEx * 1.1);
+        $('cap-note-'+s.id).textContent = `上限まであと購入¥${fmt(remainYen)}`;
+      }
+    } else {
+      bar.style.width = '100%'; bar.className = 'bar-fill';
+      $('cap-note-'+s.id).textContent = '上限なし';
+    }
+  });
+
+  renderCampaigns();
+  renderShop39();
+  renderSportsInfo();
+  renderFiveZero();
+  renderWonderful();
+  renderDay18();
+  renderPremiumDay();
+  renderTodayBadges();
+  renderGiftCardCalc();
+  const campTotal = state.campaigns.reduce((s,c)=> s + campaignCalc(c).capped, 0);
+  const s39Total = shop39TotalCalc().capped;
+  const sportTotal = sportsTotalCalc().total;
+  const fzTotal = fiveZeroCalc().capped;
+  const wfTotal = wonderfulAllCalc().capped + wonderfulRepeatCalc().capped;
+  const d18Total = day18Calc().capped;
+  const pcdTotal = premiumDayCalc().capped;
+  const grandTotal = spuTotal + campTotal + s39Total + sportTotal + fzTotal + wfTotal + d18Total + pcdTotal;
+
+  $('statTotalPt').textContent = fmt(grandTotal) + ' pt';
+  $('statTotalBreakdown').textContent = `SPU ${fmt(spuTotal)} / マラソン等 ${fmt(campTotal)} / 39ショップ ${fmt(s39Total)} / 勝ったら倍 ${fmt(sportTotal)} / 5と0の日 ${fmt(fzTotal)} / ワンダフル ${fmt(wfTotal)} / 18日 ${fmt(d18Total)} / 火木 ${fmt(pcdTotal)}`;
+  const rate = amount ? (grandTotal/amount*100) : 0;
+  $('statRate').textContent = rate.toFixed(2) + '%';
+  $('statCapped').textContent = `${cappedCount} / ${activeCount}`;
+  $('footTotal').textContent = fmt(grandTotal) + ' pt';
+  $('footBreakdown').textContent = `SPU ${fmt(spuTotal)}pt ／ マラソン等 ${fmt(campTotal)}pt ／ 39ショップ ${fmt(s39Total)}pt ／ 勝ったら倍 ${fmt(sportTotal)}pt ／ 5と0の日 ${fmt(fzTotal)}pt ／ ワンダフル ${fmt(wfTotal)}pt ／ 18日 ${fmt(d18Total)}pt ／ 火木 ${fmt(pcdTotal)}pt`;
+
+  const pct2 = Math.min(1, achievedMult / MAX_MULT);
+  $('gaugeArc').style.strokeDashoffset = 477.5 * (1-pct2);
+  $('gaugeVal').textContent = achievedMult.toFixed(1) + '倍';
+
+  recalcSimulator();
+}
+
+/* ================= simulator ================= */
+function recalcSimulator(){
+  const whatIf = parseAmount(simAmount.value);
+  const date = simDate.value || todayStr();
+  const shop = (simShop.value.trim()) || simItem.value.trim();
+
+  const simPtEl = $('simPt'), simRateEl = $('simRate');
+  const breakdownWrap = $('simBreakdown'), simRowsEl = $('simRows');
+
+  if(whatIf <= 0){
+    simPtEl.textContent = '0 pt';
+    simRateEl.textContent = '0.0%';
+    breakdownWrap.classList.remove('show');
+    return;
+  }
+
+  const newAmount = currentBaseAmount + whatIf;
+  let marginalTotal = 0;
+  const rowsHtml = [];
+
+  SERVICES.forEach(s=>{
+    if(!state.active[s.id]) return;
+    const before = pointsForAmount(currentBaseAmount, s);
+    const after = pointsForAmount(newAmount, s);
+    const marginal = after - before;
+    marginalTotal += marginal;
+    let tag = '';
+    if(marginal === 0 && s.cap) tag = '既に上限到達';
+    else if(s.cap && after >= s.cap) tag = 'この購入で上限到達';
+    rowsHtml.push(`<div class="sim-row"><span class="sname">${s.name}${tag?`<span class="tag">${tag}</span>`:''}</span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+  });
+
+  const simSportVal = (simEagles.checked?1:0) + (simVissel.checked?1:0);
+  const extraEntry = { date, item: simItem.value.trim()||'(シミュレート)', shop, amount: whatIf, sport: simSportVal, s39: simS39.checked, duplicate: simDuplicate.checked, repeat: simRepeat.checked };
+
+  const matchingCamps = state.campaigns.filter(c => date >= c.startDate && date <= c.endDate);
+  matchingCamps.forEach(c=>{
+    const before = campaignCalc(c);
+    const after = campaignCalc(c, extraEntry);
+    const marginal = after.capped - before.capped;
+    marginalTotal += marginal;
+    let tag = `対象期間中：${c.name}`;
+    if(after.capped >= c.cap) tag += '（上限到達）';
+    rowsHtml.push(`<div class="sim-row"><span class="sname">お買い物マラソン等<span class="tag camp">${tag}</span></span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+  });
+
+  if(simS39.checked){
+    const matching39 = state.s39Events.filter(ev => date >= ev.startDate && date <= ev.endDate);
+    matching39.forEach(ev=>{
+      const before = shop39EventCalc(ev);
+      const after = shop39EventCalc(ev, extraEntry);
+      const marginal = after.capped - before.capped;
+      marginalTotal += marginal;
+      let tag = whatIf < S39_THRESHOLD ? '税込3,980円未満のため対象外' : '39ショップ対象';
+      if(after.capped >= ev.cap) tag += '（上限到達）';
+      rowsHtml.push(`<div class="sim-row"><span class="sname">39ショップ<span class="tag camp">${tag}</span></span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+    });
+    if(matching39.length === 0){
+      rowsHtml.push(`<div class="sim-row"><span class="sname">39ショップ<span class="tag camp">この日付に該当する開催期間が登録されていません</span></span><span class="spt zero">+0 pt</span></div>`);
+    }
+  }
+
+  if(simSportVal > 0){
+    const { beforePt, afterPt } = sportsMarginalForDate(date, extraEntry);
+    const marginal = afterPt - beforePt;
+    marginalTotal += marginal;
+    let tag = simSportVal===2 ? '2チーム勝利' : '1チーム勝利';
+    if(afterPt >= SPORT_CAP) tag += '（上限到達）';
+    rowsHtml.push(`<div class="sim-row"><span class="sname">勝ったら倍<span class="tag sport">${tag}</span></span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+  }
+
+  if(isFiveZeroDate(date)){
+    const before = fiveZeroCalc();
+    const after = fiveZeroCalc(extraEntry);
+    const marginal = after.capped - before.capped;
+    marginalTotal += marginal;
+    let tag = '要エントリー・楽天カード決済';
+    if(after.capped >= FIVE_ZERO_CAP) tag += '（上限到達）';
+    rowsHtml.push(`<div class="sim-row"><span class="sname">5と0のつく日<span class="tag fz">${tag}</span></span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+  }
+
+  if(isDay(date, 1)){
+    const beforeAll = wonderfulAllCalc();
+    const afterAll = wonderfulAllCalc(extraEntry);
+    const marginalAll = afterAll.capped - beforeAll.capped;
+    marginalTotal += marginalAll;
+    let tagAll = afterAll.totalAmount < WONDERFUL_THRESHOLD ? '当日合計が3,000円未満' : (afterAll.capped>=WONDERFUL_CAP?'上限到達':'要エントリー');
+    rowsHtml.push(`<div class="sim-row"><span class="sname">ワンダフルデー（全ショップ）<span class="tag fz">${tagAll}</span></span><span class="spt ${marginalAll===0?'zero':''}">+${fmt(marginalAll)} pt</span></div>`);
+
+    if(simRepeat.checked){
+      const beforeRep = wonderfulRepeatCalc();
+      const afterRep = wonderfulRepeatCalc(extraEntry);
+      const marginalRep = afterRep.capped - beforeRep.capped;
+      marginalTotal += marginalRep;
+      let tagRep = afterRep.capped>=WONDERFUL_CAP?'上限到達':'リピート購入';
+      rowsHtml.push(`<div class="sim-row"><span class="sname">ワンダフルデー（リピート分）<span class="tag fz">${tagRep}</span></span><span class="spt ${marginalRep===0?'zero':''}">+${fmt(marginalRep)} pt</span></div>`);
+    }
+  }
+
+  if(isDay(date, 18)){
+    const before = day18Calc();
+    const after = day18Calc(extraEntry);
+    const marginal = after.capped - before.capped;
+    marginalTotal += marginal;
+    let tag = `会員ランク+${after.mult}倍`;
+    if(after.capped >= D18_CAP) tag += '（上限到達）';
+    rowsHtml.push(`<div class="sim-row"><span class="sname">18日ご愛顧感謝デー<span class="tag fz">${tag}</span></span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+  }
+
+  if(isTueOrThu(date)){
+    const before = premiumDayCalc();
+    const after = premiumDayCalc(extraEntry);
+    const marginal = after.capped - before.capped;
+    marginalTotal += marginal;
+    let tag = '楽天プレミアムカード利用分';
+    if(after.capped >= PCD_CAP) tag += '（上限到達）';
+    rowsHtml.push(`<div class="sim-row"><span class="sname">プレミアムカードデー<span class="tag fz">${tag}</span></span><span class="spt ${marginal===0?'zero':''}">+${fmt(marginal)} pt</span></div>`);
+  }
+
+  simPtEl.textContent = fmt(marginalTotal) + ' pt';
+  simRateEl.textContent = (whatIf ? (marginalTotal/whatIf*100) : 0).toFixed(2) + '%';
+  simRowsEl.innerHTML = rowsHtml.join('') || '<div class="sim-empty">有効なプールがありません</div>';
+  breakdownWrap.classList.add('show');
+}
+
+function simAddToLog(){
+  const amount = parseAmount(simAmount.value);
+  if(amount <= 0){ simAmount.focus(); return; }
+  const item = simItem.value.trim() || '（シミュレーターから追加）';
+  const shop = simShop.value.trim();
+  const date = simDate.value || todayStr();
+  const sport = (simEagles.checked?1:0) + (simVissel.checked?1:0);
+  addEntryRecord(date, item, shop, amount, simRepeat.checked, sport, simS39.checked, simDuplicate.checked);
+  simItem.value=''; simShop.value=''; simAmount.value=''; simRepeat.checked=false;
+  simEagles.checked=false; simVissel.checked=false; simS39.checked=false; simDuplicate.checked=false;
+  updateSimRepeatVisibility();
+  recalcSimulator();
+}
+
+function updateSimRepeatVisibility(){
+  simRepeatWrap.style.display = isDay(simDate.value, 1) ? 'flex' : 'none';
+}
+
+async function loadSettings(){
+  try{
+    const res = await window.storage.get('spu-tracker-settings:rank', false);
+    memberRank = (res && res.value) ? res.value : 'diamond';
+  }catch(e){ memberRank = 'diamond'; }
+  rankSelect.value = memberRank;
+
+  try{
+    const res2 = await window.storage.get('spu-tracker-settings:shopHistory', false);
+    shopHistory = (res2 && res2.value) ? JSON.parse(res2.value) : [];
+  }catch(e){ shopHistory = []; }
+  renderShopHistory();
+}
+async function saveRank(){
+  memberRank = rankSelect.value;
+  try{ await window.storage.set('spu-tracker-settings:rank', memberRank, false); }catch(e){}
+  recalc();
+}
+
+let shopHistory = [];
+async function saveShopHistory(){
+  try{ await window.storage.set('spu-tracker-settings:shopHistory', JSON.stringify(shopHistory), false); }catch(e){}
+}
+function addShopToHistory(name){
+  const trimmed = (name||'').trim();
+  if(!trimmed) return;
+  const exists = shopHistory.some(s => s.toLowerCase() === trimmed.toLowerCase());
+  if(!exists){
+    shopHistory.push(trimmed);
+    shopHistory.sort((a,b)=> a.localeCompare(b, 'ja'));
+    saveShopHistory();
+    renderShopHistory();
+  }
+}
+function removeShopFromHistory(name){
+  shopHistory = shopHistory.filter(s=>s!==name);
+  saveShopHistory();
+  renderShopHistory();
+}
+function renderShopHistory(){
+  const listEl = $('shopHistoryOptions');
+  if(listEl) listEl.innerHTML = shopHistory.map(s=>`<option value="${escapeHtml(s)}">`).join('');
+  const chipsEl = $('shopHistoryChips');
+  if(!chipsEl) return;
+  if(shopHistory.length === 0){
+    chipsEl.innerHTML = '<span class="shop-chip-empty">まだ登録された店舗名はありません（店舗名を入力して保存すると、ここに自動で並びます）</span>';
+    return;
+  }
+  chipsEl.innerHTML = shopHistory.map(s=>`
+    <span class="shop-chip">${escapeHtml(s)}<button type="button" data-shop="${escapeHtml(s)}" title="削除">×</button></span>
+  `).join('');
+  chipsEl.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=> removeShopFromHistory(btn.dataset.shop));
+  });
+}
+
+/* ================= 店舗名オートコンプリート（入力欄のすぐ下に候補を表示。datalistは使わない） ================= */
+function attachShopAutocomplete(inputEl){
+  if(!inputEl || !inputEl.parentNode) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'shop-field-wrap';
+  inputEl.parentNode.insertBefore(wrap, inputEl);
+  wrap.appendChild(inputEl);
+  const list = document.createElement('div');
+  list.className = 'shop-ac-list';
+  wrap.appendChild(list);
+
+  function render(){
+    const q = inputEl.value.trim().toLowerCase();
+    const matches = shopHistory.filter(s => !q || s.toLowerCase().includes(q)).slice(0, 8);
+    if(matches.length === 0){
+      list.classList.remove('show');
+      list.innerHTML = '';
+      return;
+    }
+    list.innerHTML = matches.map(s=>`
+      <div class="shop-ac-item">
+        <span class="shop-ac-name" data-shop="${escapeHtml(s)}">${escapeHtml(s)}</span>
+        <button type="button" class="shop-ac-del" data-shop="${escapeHtml(s)}" title="候補から削除">×</button>
+      </div>
+    `).join('');
+    list.classList.add('show');
+    list.querySelectorAll('.shop-ac-name').forEach(nameEl=>{
+      nameEl.addEventListener('mousedown', e=>{
+        e.preventDefault();
+        inputEl.value = nameEl.dataset.shop;
+        list.classList.remove('show');
+        inputEl.dispatchEvent(new Event('input', { bubbles:true }));
+        inputEl.focus();
+      });
+    });
+    list.querySelectorAll('.shop-ac-del').forEach(delEl=>{
+      delEl.addEventListener('mousedown', e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        removeShopFromHistory(delEl.dataset.shop);
+        render();
+      });
+    });
+  }
+
+  inputEl.addEventListener('focus', render);
+  inputEl.addEventListener('input', render);
+  inputEl.addEventListener('blur', ()=> setTimeout(()=> list.classList.remove('show'), 150));
+}
+
+/* ================= persistence ================= */
+let saveTimer = null;
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveCurrent, 500); }
+
+async function saveCurrent(){
+  const ym = monthPicker.value;
+  if(!ym) return;
+  try{
+    await window.storage.set('spu-tracker:'+ym, JSON.stringify(state), false);
+    const flag = $('saveFlag');
+    flag.classList.add('show');
+    setTimeout(()=>flag.classList.remove('show'), 1200);
+    refreshHistory();
+  }catch(e){ console.error('save failed', e); }
+}
+
+async function loadMonth(ym){
+  try{
+    const res = await window.storage.get('spu-tracker:'+ym, false);
+    if(res && res.value){
+      const data = JSON.parse(res.value);
+      state.entries = Array.isArray(data.entries) ? data.entries : [];
+      state.campaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
+      state.s39Events = Array.isArray(data.s39Events) ? data.s39Events : [];
+      state.plan = Array.isArray(data.plan) ? data.plan : [];
+      SERVICES.forEach(s=>{ state.active[s.id] = (data.active && data.active[s.id] !== undefined) ? data.active[s.id] : s.defaultActive; });
+    } else {
+      state.entries = []; state.campaigns = []; state.s39Events = []; state.plan = [];
+      SERVICES.forEach(s=> state.active[s.id] = s.defaultActive);
+    }
+  }catch(e){
+    state.entries = []; state.campaigns = []; state.s39Events = []; state.plan = [];
+    SERVICES.forEach(s=> state.active[s.id] = s.defaultActive);
+  }
+  simItem.value=''; simShop.value=''; simAmount.value=''; simRepeat.checked=false;
+  simEagles.checked=false; simVissel.checked=false; simS39.checked=false; simDuplicate.checked=false;
+  $('campError').textContent=''; $('campError').className='form-error';
+  $('s39Error').textContent=''; $('s39Error').className='form-error';
+  $('giftAmount').value=''; $('planGiftAmount').value='';
+  editingEntryId = null;
+  addEntryBtn.textContent = '追加';
+  editBanner.style.display = 'none';
+  closePlanModal();
+
+  const today = new Date();
+  const todayYm = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+  const defaultDate = (todayYm === ym) ? todayStr() : ym+'-01';
+  entryDate.value = defaultDate;
+  simDate.value = defaultDate;
+  planDate.value = defaultDate;
+  planItem.value=''; planShop.value=''; planAmount.value=''; planRepeat.checked=false;
+  planEagles.checked=false; planVissel.checked=false; planS39.checked=false; planDuplicate.checked=false;
+  updateEntryRepeatVisibility();
+  updateSimRepeatVisibility();
+  updatePlanRepeatVisibility();
+
+  buildRows();
+  renderEntries();
+  renderCampaigns();
+  renderShop39();
+  renderSportsInfo();
+  renderFiveZero();
+  renderWonderful();
+  renderDay18();
+  renderPremiumDay();
+  recalc();
+}
+
+async function refreshHistory(){
+  try{
+    const res = await window.storage.list('spu-tracker:', false);
+    const keys = (res && res.keys) ? res.keys : [];
+    const months = keys.map(k=>k.replace('spu-tracker:','')).sort().reverse();
+    historySelect.innerHTML = '<option value="">— 選択 —</option>' + months.map(m=>`<option value="${m}">${m}</option>`).join('');
+  }catch(e){}
+}
+
+function showBackupStatus(msg, isError){
+  backupStatus.textContent = msg;
+  backupStatus.className = 'backup-status' + (isError ? ' error' : '');
+  setTimeout(()=>{ backupStatus.textContent=''; }, 6000);
+}
+
+function exportEntriesCsv(){
+  if(state.entries.length === 0){
+    showBackupStatus('✕ 出力できる買い物記録がありません', true);
+    return;
+  }
+  const header = ['日付','購入内容','店舗','金額（税込）','リピート','勝ったら倍','39ショップ','重複'];
+  const rows = [...state.entries].sort((a,b)=> a.date.localeCompare(b.date)).map(en=>[
+    en.date,
+    en.item,
+    en.shop || '',
+    en.amount,
+    en.repeat ? '○' : '',
+    en.sport>0 ? (en.sport===2?'2チーム':'1チーム') : '',
+    en.s39 ? '○' : '',
+    en.duplicate ? '○' : ''
+  ]);
+  const csvEscape = v => {
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const csv = [header, ...rows].map(r=> r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `rakuten-purchases-${monthPicker.value}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showBackupStatus(`✓ ${state.entries.length}件をCSV出力しました`);
+}
+
+async function exportBackup(){
+  const months = {};
+  let storageOk = true;
+  try{
+    const res = await window.storage.list('spu-tracker:', false);
+    const keys = (res && res.keys) ? res.keys : [];
+    for(const k of keys){
+      try{
+        const r = await window.storage.get(k, false);
+        if(r && r.value) months[k.replace('spu-tracker:','')] = JSON.parse(r.value);
+      }catch(e){}
+    }
+  }catch(e){ storageOk = false; }
+
+  if(Object.keys(months).length === 0){
+    months[monthPicker.value] = state;
+  }
+
+  const payload = { exportedAt: new Date().toISOString(), rank: memberRank, months };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `rakuten-point-backup-${stamp}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showBackupStatus(storageOk
+    ? `✓ ${Object.keys(months).length}か月分を保存しました`
+    : '✓ 現在表示中の月のみ保存しました（保存領域に接続できませんでした）');
+}
+
+function importBackupFile(file){
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    let data;
+    try{
+      data = JSON.parse(e.target.result);
+    }catch(err){
+      showBackupStatus('✕ ファイルの形式が正しくありません', true);
+      return;
+    }
+    if(!data || typeof data.months !== 'object'){
+      showBackupStatus('✕ バックアップファイルの内容が不正です', true);
+      return;
+    }
+    let savedCount = 0;
+    let storageOk = true;
+    for(const ym of Object.keys(data.months)){
+      try{
+        await window.storage.set('spu-tracker:'+ym, JSON.stringify(data.months[ym]), false);
+        savedCount++;
+      }catch(err){ storageOk = false; }
+    }
+    if(data.rank){
+      memberRank = data.rank;
+      rankSelect.value = memberRank;
+      try{ await window.storage.set('spu-tracker-settings:rank', memberRank, false); }catch(err){}
+    }
+    if(!storageOk && savedCount===0){
+      // フォールバック：保存領域が使えない環境では、現在表示中の月にだけ読み込む
+      const ymKeys = Object.keys(data.months);
+      const targetYm = data.months[monthPicker.value] ? monthPicker.value : ymKeys[0];
+      if(targetYm){
+        const d = data.months[targetYm];
+        state.entries = Array.isArray(d.entries) ? d.entries : [];
+        state.campaigns = Array.isArray(d.campaigns) ? d.campaigns : [];
+        state.s39Events = Array.isArray(d.s39Events) ? d.s39Events : [];
+        state.plan = Array.isArray(d.plan) ? d.plan : [];
+        SERVICES.forEach(s=>{ state.active[s.id] = (d.active && d.active[s.id] !== undefined) ? d.active[s.id] : s.defaultActive; });
+        monthPicker.value = targetYm;
+        editingEntryId = null;
+        buildRows(); renderEntries(); renderCampaigns(); renderShop39(); renderSportsInfo();
+        renderFiveZero(); renderWonderful(); renderDay18(); renderPremiumDay(); renderPlan(); recalc();
+        showBackupStatus(`✓ ${targetYm}分を読み込みました（保存領域が使えないためこの画面上のみ反映）`, false);
+      } else {
+        showBackupStatus('✕ 読み込みに失敗しました', true);
+      }
+      return;
+    }
+    await refreshHistory();
+    await loadMonth(monthPicker.value);
+    showBackupStatus(`✓ ${savedCount}か月分を読み込みました`);
+  };
+  reader.onerror = ()=> showBackupStatus('✕ ファイルの読み込みに失敗しました', true);
+  reader.readAsText(file);
+}
+
+/* ================= events ================= */
+addEntryBtn.addEventListener('click', addEntry);
+cancelEditBtn.addEventListener('click', cancelEdit);
+
+attachShopAutocomplete(entryShop);
+attachShopAutocomplete(simShop);
+attachShopAutocomplete(planShop);
+$('cancelPlanEditBtn').addEventListener('click', cancelPlanEdit);
+
+exportBtn.addEventListener('click', exportBackup);
+$('csvExportBtn').addEventListener('click', exportEntriesCsv);
+importBtn.addEventListener('click', ()=> importFile.click());
+importFile.addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(file) importBackupFile(file);
+  importFile.value = '';
+});
+entryAmount.addEventListener('keydown', e=>{ if(e.key==='Enter') addEntry(); });
+entryItem.addEventListener('keydown', e=>{ if(e.key==='Enter') entryShop.focus(); });
+entryShop.addEventListener('keydown', e=>{ if(e.key==='Enter') entryAmount.focus(); });
+entryAmount.addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value = d?d.toLocaleString('ja-JP'):''; });
+entryDate.addEventListener('change', updateEntryRepeatVisibility);
+
+
+simAmount.addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value=d?d.toLocaleString('ja-JP'):''; recalcSimulator(); });
+simDate.addEventListener('change', ()=>{ updateSimRepeatVisibility(); recalcSimulator(); });
+simRepeat.addEventListener('change', recalcSimulator);
+simEagles.addEventListener('change', recalcSimulator);
+simVissel.addEventListener('change', recalcSimulator);
+simS39.addEventListener('change', recalcSimulator);
+simDuplicate.addEventListener('change', recalcSimulator);
+simShop.addEventListener('input', recalcSimulator);
+simAmount.addEventListener('keydown', e=>{ if(e.key==='Enter') simAddToLog(); });
+simItem.addEventListener('keydown', e=>{ if(e.key==='Enter') simShop.focus(); });
+simShop.addEventListener('keydown', e=>{ if(e.key==='Enter') simAmount.focus(); });
+simAddBtn.addEventListener('click', simAddToLog);
+
+rankSelect.addEventListener('change', saveRank);
+
+addCampBtn.addEventListener('click', addCampaign);
+campCap.addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value=d?d.toLocaleString('ja-JP'):''; });
+campCap.addEventListener('keydown', e=>{ if(e.key==='Enter') addCampaign(); });
+campNameSelect.addEventListener('change', ()=>{
+  campNameOther.style.display = campNameSelect.value === '__other__' ? 'block' : 'none';
+  if(campNameSelect.value === '__other__') campNameOther.focus();
+});
+
+addS39Btn.addEventListener('click', addShop39Event);
+$('giftMode').addEventListener('change', renderGiftCardCalc);
+$('giftAmount').addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value=d?d.toLocaleString('ja-JP'):''; renderGiftCardCalc(); });
+s39Cap.addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value=d?d.toLocaleString('ja-JP'):''; });
+s39Cap.addEventListener('keydown', e=>{ if(e.key==='Enter') addShop39Event(); });
+
+planFabBtn.addEventListener('click', openPlanModal);
+planCloseBtn.addEventListener('click', closePlanModal);
+planModalOverlay.addEventListener('click', e=>{ if(e.target === planModalOverlay) closePlanModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && planModalOverlay.classList.contains('show')) closePlanModal(); });
+
+addPlanBtn.addEventListener('click', addPlan);
+planDate.addEventListener('change', updatePlanRepeatVisibility);
+planAmount.addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value=d?d.toLocaleString('ja-JP'):''; });
+planAmount.addEventListener('keydown', e=>{ if(e.key==='Enter') addPlan(); });
+planItem.addEventListener('keydown', e=>{ if(e.key==='Enter') planAmount.focus(); });
+commitAllPlanBtn.addEventListener('click', commitAllPlan);
+planGiftMode.addEventListener('change', ()=>{ renderPlanCampaigns(); renderPlanGift(); });
+$('planGiftAmount').addEventListener('input', e=>{ const d=parseAmount(e.target.value); e.target.value=d?d.toLocaleString('ja-JP'):''; renderPlanCampaigns(); renderPlanGift(); });
+
+monthPicker.addEventListener('change', ()=> loadMonth(monthPicker.value));
+historySelect.addEventListener('change', e=>{ if(e.target.value){ monthPicker.value = e.target.value; loadMonth(e.target.value); } });
+
+/* ================= init ================= */
+(function init(){
+  const now = new Date();
+  const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  monthPicker.value = ym;
+  loadSettings().then(()=>{
+    buildRows();
+    loadMonth(ym);
+    refreshHistory();
+  });
+})();
+</script>
+</body>
+</html>
