@@ -884,6 +884,58 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================= Supabase 連携（データ保存の実体） =================
+   このアプリは元々 window.storage.get/set/list という簡易KVSインターフェースで
+   データを保存する作りになっている。ここではそのインターフェースをそのまま維持しつつ、
+   実体をブラウザのローカル保存ではなく Supabase の rakuten_records テーブルに向けることで、
+   PC・スマホなど別々の端末からアクセスしても同じデータが見えるようにしている。
+   テーブル作成用SQLは schema.sql を参照。 */
+const SUPABASE_URL = 'https://edfrjxjdzxutcjeayfac.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_GVtanlT_gDwSEQSsZPC_NQ_nEK-60x2';
+const RAKUTEN_RECORDS_TABLE = 'rakuten_records';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+/* 自分自身が書き込んだ直後のRealtimeイベントで無駄な再読込をしないための記録 */
+const recentLocalWrites = new Map();
+
+window.storage = {
+  async get(key){
+    const { data, error } = await supabaseClient
+      .from(RAKUTEN_RECORDS_TABLE).select('value').eq('key', key).maybeSingle();
+    if(error) throw error;
+    return data ? { value: data.value } : null;
+  },
+  async set(key, value){
+    recentLocalWrites.set(key, Date.now());
+    const { error } = await supabaseClient
+      .from(RAKUTEN_RECORDS_TABLE).upsert({ key, value }, { onConflict: 'key' });
+    if(error) throw error;
+    return true;
+  },
+  async list(prefix){
+    const { data, error } = await supabaseClient
+      .from(RAKUTEN_RECORDS_TABLE).select('key').like('key', prefix + '%');
+    if(error) throw error;
+    return { keys: (data || []).map(r => r.key) };
+  },
+};
+
+/* 他端末からの変更をリアルタイムに反映する。実際のハンドラは下のメインスクリプトの末尾で登録される */
+window.__onRemoteStorageChange = null;
+supabaseClient
+  .channel('rakuten_records_sync')
+  .on('postgres_changes', { event: '*', schema: 'public', table: RAKUTEN_RECORDS_TABLE }, payload => {
+    const key = (payload.new && payload.new.key) || (payload.old && payload.old.key);
+    if(!key) return;
+    const writtenAt = recentLocalWrites.get(key);
+    if(writtenAt && Date.now() - writtenAt < 3000) return; // 自分の書き込みのエコーは無視
+    if(typeof window.__onRemoteStorageChange === 'function') window.__onRemoteStorageChange(key);
+  })
+  .subscribe();
+</script>
 <script>
 const SERVICES = [
   {id:'kaiin',    name:'楽天会員',              note:'登録のみ・上限なし',           mult:1,   cap:null, defaultActive:true},
@@ -2440,6 +2492,19 @@ historySelect.addEventListener('change', e=>{ if(e.target.value){ monthPicker.va
     refreshHistory();
   });
 })();
+
+/* ================= 他端末からのリアルタイム同期 ================= */
+window.__onRemoteStorageChange = function(key){
+  if(!key) return;
+  if(key === 'spu-tracker:' + monthPicker.value){
+    loadMonth(monthPicker.value);
+    refreshHistory();
+  } else if(key.startsWith('spu-tracker:')){
+    refreshHistory();
+  } else if(key === 'spu-tracker-settings:rank' || key === 'spu-tracker-settings:shopHistory'){
+    loadSettings();
+  }
+};
 </script>
 </body>
 </html>
