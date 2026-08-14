@@ -197,22 +197,38 @@
 
   .shop-history-wrap{margin:-4px 0 18px;}
   .shop-history-label{font-family:'IBM Plex Mono';font-size:10.5px;color:#5b6270;margin-bottom:7px;}
-  .shop-history-chips{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 16px;}
+  .shop-history-chips{display:flex;flex-wrap:wrap;gap:7px;}
   .shop-chip{
     display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono';font-size:11.5px;
     background:#efece0;color:#4a4438;border-radius:14px;padding:5px 6px 5px 12px;
   }
-  .shop-chip-name{cursor:pointer;}
-  .shop-chip-name:hover{text-decoration:underline;}
   .shop-chip button{
     background:#e0d8c8;border:none;cursor:pointer;color:#a4392a;font-size:12px;line-height:1;
     width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;
   }
   .shop-chip button:hover{background:#d9c2b8;}
   .shop-chip-empty{font-family:'IBM Plex Mono';font-size:11px;color:#a8a196;}
-  .sim-shop-chips .shop-chip{background:rgba(255,255,255,.12);color:var(--paper);}
-  .sim-shop-chips .shop-chip button{background:rgba(255,255,255,.18);color:#f0a898;}
-  .sim-shop-chips .shop-chip-empty{color:var(--muted);}
+
+  .shop-field-wrap{position:relative;min-width:0;}
+  .shop-field-wrap input{width:100%;}
+  .shop-ac-list{
+    position:absolute;top:100%;left:0;right:0;z-index:200;margin-top:2px;
+    background:#fff;border:1px solid var(--paper-dim);border-radius:8px;
+    max-height:190px;overflow-y:auto;display:none;
+    box-shadow:0 10px 28px rgba(0,0,0,.25);
+  }
+  .shop-ac-list.show{display:block;}
+  .shop-ac-item{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:8px 10px;font-family:'IBM Plex Mono';font-size:12.5px;color:var(--ink-on-paper);
+  }
+  .shop-ac-item:hover{background:#efece0;}
+  .shop-ac-name{flex:1;cursor:pointer;}
+  .shop-ac-del{
+    background:none;border:none;cursor:pointer;color:#a4392a;font-size:13px;line-height:1;
+    padding:2px 6px;border-radius:4px;flex-shrink:0;
+  }
+  .shop-ac-del:hover{background:#f0e5e0;}
 
   .other-row{display:flex;align-items:center;margin-top:14px;padding-top:14px;border-top:1px dashed var(--paper-dim);}
   .other-row .total-echo{margin-left:auto;font-family:'Space Grotesk';font-weight:700;font-size:18px;}
@@ -405,36 +421,6 @@
     .row .mult{grid-area:mult;}
     .row .pt-block{grid-area:pt;}
     .row .bar-wrap{grid-area:bar;}
-
-    /* テーブルをカード形式に変換（狭い画面で1文字ずつ折り返されるのを防ぐ） */
-    table.data-table thead{display:none;}
-    table.data-table, table.data-table tbody{display:block;width:100%;}
-    table.data-table tr{
-      display:block;border:1px solid var(--paper-dim);border-radius:10px;
-      margin-bottom:10px;padding:10px 40px 10px 12px;position:relative;background:#fff;
-    }
-    table.data-table td{
-      display:block;width:auto !important;border-bottom:none;padding:4px 0;
-      white-space:normal;text-align:left;font-size:13px;
-    }
-    table.data-table td.col-amount{text-align:left;}
-    table.data-table td[data-label]::before{
-      content:attr(data-label);display:block;font-family:'IBM Plex Mono';font-size:9.5px;
-      color:#a8a196;letter-spacing:.04em;margin-bottom:1px;
-    }
-    table.data-table td.col-del{
-      position:absolute;top:8px;right:6px;width:auto;padding:0;
-    }
-    table.data-table td.col-plan-actions{
-      position:absolute;top:8px;right:38px;width:auto;padding:0;
-    }
-    .plan-modal table.data-table tr{padding-right:80px;}
-
-    /* 店舗名プレースホルダーが狭い画面で見切れるのを防ぐ */
-    #entryShop::placeholder,#simShop::placeholder,#planShop::placeholder{font-size:12px;}
-
-    /* 右下固定ボタンとコンテンツが重ならないよう余白を確保 */
-    body{padding-bottom:64px;}
   }
 
   /* ---------- 買い物予定リスト（FAB + モーダル） ---------- */
@@ -584,7 +570,7 @@
       <input type="date" id="entryDate">
       <input type="text" id="entryItem" placeholder="商品名">
       <input type="text" id="entryAmount" inputmode="numeric" placeholder="価格（税込）">
-      <input type="text" id="entryShop" list="shopHistoryOptions" placeholder="店舗名（任意）">
+      <input type="text" id="entryShop" list="shopHistoryOptions" placeholder="店舗名（任意・マラソン集計用）">
       <button id="addEntryBtn" type="button">追加</button>
     </div>
     <label class="repeat-check" id="entryRepeatWrap" style="display:none;margin:-8px 0 10px;">
@@ -751,10 +737,9 @@
       <input type="date" id="simDate">
       <input type="text" id="simItem" placeholder="商品名（任意）">
       <input type="text" id="simAmount" inputmode="numeric" placeholder="価格（税込）">
-      <input type="text" id="simShop" list="shopHistoryOptions" placeholder="店舗名（任意）">
+      <input type="text" id="simShop" list="shopHistoryOptions" placeholder="店舗名（任意・マラソン集計用）">
       <button id="simAddBtn" type="button">記録に追加</button>
     </div>
-    <div class="shop-history-chips sim-shop-chips" id="simShopChips"></div>
     <label class="repeat-check" id="simRepeatWrap" style="display:none;margin:-8px 0 10px;color:var(--paper);">
       <input type="checkbox" id="simRepeat"> リピート購入（過去に買ったことがある商品）
     </label>
@@ -840,10 +825,9 @@
       <input type="date" id="planDate">
       <input type="text" id="planItem" placeholder="商品名">
       <input type="text" id="planAmount" inputmode="numeric" placeholder="価格（税込）">
-      <input type="text" id="planShop" list="shopHistoryOptions" placeholder="店舗名（任意）">
+      <input type="text" id="planShop" list="shopHistoryOptions" placeholder="店舗名（任意・マラソン集計用）">
       <button id="addPlanBtn" type="button">追加</button>
     </div>
-    <div class="shop-history-chips plan-shop-chips" id="planShopChips"></div>
     <label class="repeat-check" id="planRepeatWrap" style="display:none;margin:-8px 0 10px;">
       <input type="checkbox" id="planRepeat"> リピート購入（過去に買ったことがある商品）
     </label>
@@ -900,6 +884,58 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================= Supabase 連携（データ保存の実体） =================
+   このアプリは元々 window.storage.get/set/list という簡易KVSインターフェースで
+   データを保存する作りになっている。ここではそのインターフェースをそのまま維持しつつ、
+   実体をブラウザのローカル保存ではなく Supabase の rakuten_records テーブルに向けることで、
+   PC・スマホなど別々の端末からアクセスしても同じデータが見えるようにしている。
+   テーブル作成用SQLは schema.sql を参照。 */
+const SUPABASE_URL = 'https://edfrjxjdzxutcjeayfac.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_GVtanlT_gDwSEQSsZPC_NQ_nEK-60x2';
+const RAKUTEN_RECORDS_TABLE = 'rakuten_records';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+/* 自分自身が書き込んだ直後のRealtimeイベントで無駄な再読込をしないための記録 */
+const recentLocalWrites = new Map();
+
+window.storage = {
+  async get(key){
+    const { data, error } = await supabaseClient
+      .from(RAKUTEN_RECORDS_TABLE).select('value').eq('key', key).maybeSingle();
+    if(error) throw error;
+    return data ? { value: data.value } : null;
+  },
+  async set(key, value){
+    recentLocalWrites.set(key, Date.now());
+    const { error } = await supabaseClient
+      .from(RAKUTEN_RECORDS_TABLE).upsert({ key, value }, { onConflict: 'key' });
+    if(error) throw error;
+    return true;
+  },
+  async list(prefix){
+    const { data, error } = await supabaseClient
+      .from(RAKUTEN_RECORDS_TABLE).select('key').like('key', prefix + '%');
+    if(error) throw error;
+    return { keys: (data || []).map(r => r.key) };
+  },
+};
+
+/* 他端末からの変更をリアルタイムに反映する。実際のハンドラは下のメインスクリプトの末尾で登録される */
+window.__onRemoteStorageChange = null;
+supabaseClient
+  .channel('rakuten_records_sync')
+  .on('postgres_changes', { event: '*', schema: 'public', table: RAKUTEN_RECORDS_TABLE }, payload => {
+    const key = (payload.new && payload.new.key) || (payload.old && payload.old.key);
+    if(!key) return;
+    const writtenAt = recentLocalWrites.get(key);
+    if(writtenAt && Date.now() - writtenAt < 3000) return; // 自分の書き込みのエコーは無視
+    if(typeof window.__onRemoteStorageChange === 'function') window.__onRemoteStorageChange(key);
+  })
+  .subscribe();
+</script>
 <script>
 const SERVICES = [
   {id:'kaiin',    name:'楽天会員',              note:'登録のみ・上限なし',           mult:1,   cap:null, defaultActive:true},
@@ -1031,10 +1067,10 @@ function renderEntries(){
     const editingCls = en.id===editingEntryId ? ' entry-row-editing' : '';
     return `
     <tr data-id="${en.id}" class="entry-row-clickable${editingCls}">
-      <td class="col-date" data-label="日付">${en.date}</td>
-      <td data-label="購入内容">${escapeHtml(en.item)}${tags}</td>
-      <td class="col-shop" data-label="店舗">${escapeHtml(en.shop||'')}</td>
-      <td class="col-amount" data-label="金額">¥${fmt(en.amount)}</td>
+      <td class="col-date">${en.date}</td>
+      <td>${escapeHtml(en.item)}${tags}</td>
+      <td class="col-shop">${escapeHtml(en.shop||'')}</td>
+      <td class="col-amount">¥${fmt(en.amount)}</td>
       <td class="col-del"><button class="del-btn" data-id="${en.id}">×</button></td>
     </tr>
   `;}).join('');
@@ -1624,13 +1660,13 @@ function renderPlan(){
     const editingCls = item.id===editingPlanId ? ' entry-row-editing' : '';
     rowsHtml += `
       <tr data-id="${item.id}" class="entry-row-clickable${editingCls}">
-        <td class="col-date" data-label="日付">${item.date}</td>
-        <td data-label="購入内容">${escapeHtml(item.item)}${tags?` <span class="plan-tags">${tags}</span>`:''}</td>
-        <td class="col-shop" data-label="店舗">${escapeHtml(item.shop||'')}</td>
-        <td class="col-amount" data-label="金額">¥${fmt(item.amount)}</td>
-        <td class="plan-pt" data-label="獲得予定pt">+${fmt(marginal)}pt</td>
-        <td class="col-plan-actions"><button class="plan-commit-btn" data-id="${item.id}">記録へ</button></td>
-        <td class="col-del"><button class="del-btn" data-id="${item.id}">×</button></td>
+        <td class="col-date">${item.date}</td>
+        <td>${escapeHtml(item.item)}${tags?` <span class="plan-tags">${tags}</span>`:''}</td>
+        <td class="col-shop">${escapeHtml(item.shop||'')}</td>
+        <td class="col-amount">¥${fmt(item.amount)}</td>
+        <td class="plan-pt">+${fmt(marginal)}pt</td>
+        <td><button class="plan-commit-btn" data-id="${item.id}">記録へ</button></td>
+        <td><button class="del-btn" data-id="${item.id}">×</button></td>
       </tr>
     `;
   });
@@ -2110,34 +2146,69 @@ function removeShopFromHistory(name){
 function renderShopHistory(){
   const listEl = $('shopHistoryOptions');
   if(listEl) listEl.innerHTML = shopHistory.map(s=>`<option value="${escapeHtml(s)}">`).join('');
-  renderShopChipsInto('shopHistoryChips', entryShop);
-  renderShopChipsInto('simShopChips', simShop);
-  renderShopChipsInto('planShopChips', planShop);
-}
-
-/* 店舗名チップ：タップで入力欄に反映、×でリストから削除。常時表示なので確実に動く */
-function renderShopChipsInto(containerId, targetInput){
-  const chipsEl = $(containerId);
+  const chipsEl = $('shopHistoryChips');
   if(!chipsEl) return;
   if(shopHistory.length === 0){
     chipsEl.innerHTML = '<span class="shop-chip-empty">まだ登録された店舗名はありません（店舗名を入力して保存すると、ここに自動で並びます）</span>';
     return;
   }
   chipsEl.innerHTML = shopHistory.map(s=>`
-    <span class="shop-chip"><span class="shop-chip-name" data-shop="${escapeHtml(s)}">${escapeHtml(s)}</span><button type="button" data-shop="${escapeHtml(s)}" title="削除">×</button></span>
+    <span class="shop-chip">${escapeHtml(s)}<button type="button" data-shop="${escapeHtml(s)}" title="削除">×</button></span>
   `).join('');
-  chipsEl.querySelectorAll('.shop-chip-name').forEach(nameEl=>{
-    nameEl.addEventListener('click', ()=>{
-      if(!targetInput) return;
-      targetInput.value = nameEl.dataset.shop;
-      targetInput.dispatchEvent(new Event('input', { bubbles:true }));
-    });
-  });
-  chipsEl.querySelectorAll('.shop-chip button').forEach(btn=>{
+  chipsEl.querySelectorAll('button').forEach(btn=>{
     btn.addEventListener('click', ()=> removeShopFromHistory(btn.dataset.shop));
   });
 }
 
+/* ================= 店舗名オートコンプリート（入力欄のすぐ下に候補を表示。datalistは使わない） ================= */
+function attachShopAutocomplete(inputEl){
+  if(!inputEl || !inputEl.parentNode) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'shop-field-wrap';
+  inputEl.parentNode.insertBefore(wrap, inputEl);
+  wrap.appendChild(inputEl);
+  const list = document.createElement('div');
+  list.className = 'shop-ac-list';
+  wrap.appendChild(list);
+
+  function render(){
+    const q = inputEl.value.trim().toLowerCase();
+    const matches = shopHistory.filter(s => !q || s.toLowerCase().includes(q)).slice(0, 8);
+    if(matches.length === 0){
+      list.classList.remove('show');
+      list.innerHTML = '';
+      return;
+    }
+    list.innerHTML = matches.map(s=>`
+      <div class="shop-ac-item">
+        <span class="shop-ac-name" data-shop="${escapeHtml(s)}">${escapeHtml(s)}</span>
+        <button type="button" class="shop-ac-del" data-shop="${escapeHtml(s)}" title="候補から削除">×</button>
+      </div>
+    `).join('');
+    list.classList.add('show');
+    list.querySelectorAll('.shop-ac-name').forEach(nameEl=>{
+      nameEl.addEventListener('mousedown', e=>{
+        e.preventDefault();
+        inputEl.value = nameEl.dataset.shop;
+        list.classList.remove('show');
+        inputEl.dispatchEvent(new Event('input', { bubbles:true }));
+        inputEl.focus();
+      });
+    });
+    list.querySelectorAll('.shop-ac-del').forEach(delEl=>{
+      delEl.addEventListener('mousedown', e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        removeShopFromHistory(delEl.dataset.shop);
+        render();
+      });
+    });
+  }
+
+  inputEl.addEventListener('focus', render);
+  inputEl.addEventListener('input', render);
+  inputEl.addEventListener('blur', ()=> setTimeout(()=> list.classList.remove('show'), 150));
+}
 
 /* ================= persistence ================= */
 let saveTimer = null;
@@ -2344,6 +2415,9 @@ function importBackupFile(file){
 addEntryBtn.addEventListener('click', addEntry);
 cancelEditBtn.addEventListener('click', cancelEdit);
 
+attachShopAutocomplete(entryShop);
+attachShopAutocomplete(simShop);
+attachShopAutocomplete(planShop);
 $('cancelPlanEditBtn').addEventListener('click', cancelPlanEdit);
 
 exportBtn.addEventListener('click', exportBackup);
@@ -2418,6 +2492,19 @@ historySelect.addEventListener('change', e=>{ if(e.target.value){ monthPicker.va
     refreshHistory();
   });
 })();
+
+/* ================= 他端末からのリアルタイム同期 ================= */
+window.__onRemoteStorageChange = function(key){
+  if(!key) return;
+  if(key === 'spu-tracker:' + monthPicker.value){
+    loadMonth(monthPicker.value);
+    refreshHistory();
+  } else if(key.startsWith('spu-tracker:')){
+    refreshHistory();
+  } else if(key === 'spu-tracker-settings:rank' || key === 'spu-tracker-settings:shopHistory'){
+    loadSettings();
+  }
+};
 </script>
 </body>
 </html>
